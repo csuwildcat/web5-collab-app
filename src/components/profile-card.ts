@@ -220,7 +220,6 @@ export class ProfileCard extends LitElement {
       this.following = state;
     }
     DOM.fireEvent(document, 'follow-change', {
-      composed: true,
       detail: {
         did: did,
         following: state

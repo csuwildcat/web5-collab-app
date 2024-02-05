@@ -1,117 +1,253 @@
 
-const dai1yProtocolUri = 'https://dai1y.app';
-const dai1ySchemas = [
-        'post',
-        'follow',
-        'bookmark',
-        'image',
-      ].reduce((obj, label) => {
-        obj[label] = dai1yProtocolUri + '/schemas/' + label;
-        return obj;
-      }, {})
+function addSchemas(config) {
+  const types = config.types;
+  const protocolUri = config.protocol;
+  return Object.entries(types).reduce((result, [key, value]) => {
+    if (value.dataFormats.length === 1) {
+      result[key] = types[key].schema = protocolUri + '/schemas/' + key;
+    }
+    return result;
+  }, {})
+}
 
-export const dai1y = {
-  uri: dai1yProtocolUri,
-  schemas: dai1ySchemas,
-  definition: {
-    published: true,
-    protocol: dai1yProtocolUri,
-    types: {
-      post: {
-        schema: dai1ySchemas.post,
-        dataFormats: ['application/json']
+const adminOrCreator = [
+  {
+    who: 'author',
+    of: 'community',
+    can: 'write'
+  },
+  {
+    role: 'community/admin',
+    can: 'write'
+  }
+];
+
+const appDefinition = {
+  published: true,
+  protocol: 'https://slick.app',
+  types: {
+    invite: {
+      dataFormats: ['application/json']
+    },
+    community: {
+      dataFormats: ['application/json']
+    },
+    overview: {
+      dataFormats: ['application/json']
+    },
+    channel: {
+      dataFormats: ['application/json']
+    },
+    message: {
+      dataFormats: ['application/json']
+    },
+    image: {
+      dataFormats: ['image/gif', 'image/png', 'image/jpeg']
+    },
+    media: {
+      dataFormats: ['image/gif', 'image/png', 'image/jpeg', 'video/mp4']
+    },
+    reaction: {
+      dataFormats: ['application/json']
+    },
+    admin: {
+      dataFormats: ['application/json']
+    },
+    participant: {
+      dataFormats: ['application/json']
+    },
+    task: {
+      dataFormats: ['application/json']
+    }
+  },
+  structure: {
+    task: {},
+    invite: {
+      $actions: [
+        {
+          who: 'anyone',
+          can: 'write'
+        }
+      ]
+    },
+    friend: {
+      $globalRole: true
+    },
+    community: {
+      admin: {
+        $contextRole: true,
+        $actions: [
+          {
+            who: 'author',
+            of: 'community',
+            can: 'write'
+          },
+          {
+            role: 'community/admin',
+            can: 'write'
+          }
+        ]
+      },
+      participant: {
+        $contextRole: true,
+        $actions: adminOrCreator
+      },
+      overview: {
+        $actions: adminOrCreator
       },
       image: {
-        schema: dai1ySchemas.image,
-        dataFormats: ['image/gif', 'image/png', 'image/jpeg']
+        $actions: adminOrCreator
       },
-      follow: {
-        schema: dai1ySchemas.follow,
-        dataFormats: ['application/json']
-      },
-      bookmark: {
-        schema: dai1ySchemas.bookmark,
-        dataFormats: ['application/json']
-      }
-    },
-    structure: {
-      post: {
-        image: {},
-        comment: {
+      channel: {
+        $actions: [
+          {
+            who: 'anyone',
+            can: 'write'
+          },
+          {
+            role: 'community/admin',
+            can: 'write'
+          },
+          {
+            role: 'community/admin',
+            can: 'delete'
+          }
+        ],
+        message: {
           $actions: [
             {
-              role: 'follow',
+              who: 'anyone',
               can: 'write'
+            },
+            {
+              role: 'community/admin',
+              can: 'write'
+            },
+            {
+              role: 'community/participant',
+              can: 'write'
+            },
+            {
+              role: 'community/admin',
+              can: 'delete'
+            },
+            {
+              role: 'community/participant',
+              can: 'delete'
             }
-          ]
+          ],
+          media: {
+            $actions: [
+              {
+                who: 'author',
+                of: 'community/channel/message',
+                can: 'write'
+              }
+            ]
+          },
+          reaction: {
+            $actions: [
+              {
+                who: 'anyone',
+                can: 'write'
+              }
+            ]
+          }
         }
       },
-      follow: {
-        $globalRole: true
-      },
-      bookmark: {}
+      convo: {
+        $actions: [
+          {
+            role: 'community/admin',
+            can: 'write'
+          },
+          {
+            role: 'community/admin',
+            can: 'delete'
+          }
+        ],
+        message: {
+          $actions: [
+            {
+              who: 'recipient',
+              of: 'community/convo/message',
+              can: 'write'
+            },
+            {
+              who: 'author',
+              of: 'community/convo/message',
+              can: 'delete'
+            }
+          ],
+          media: {
+            $actions: [
+              {
+                who: 'author',
+                of: 'community/convo/message',
+                can: 'write'
+              }
+            ]
+          },
+          reaction: {
+            $actions: [
+              {
+                who: 'recipient',
+                of: 'community/convo/message',
+                can: 'write'
+              }
+            ]
+          }
+        }
+      }
     }
   }
 }
 
-const profileProtocolUri = "https://areweweb5yet.com/protocols/profile";
-const profileSchemas = [
-        'name',
-        'social',
-        'messaging',
-        'phone',
-        'address',
-        'avatar',
-        'hero',
-      ].reduce((obj, label) => {
-        obj[label] = profileProtocolUri + '/schemas/' + label;
-        return obj;
-      }, {})
+export const sync = {
+  uri: appDefinition.protocol,
+  schemas: addSchemas(appDefinition),
+  definition: appDefinition
+}
+
+const profileDefinition = {
+  published: true,
+  protocol: "https://areweweb5yet.com/protocols/profile",
+  types: {
+    name: {
+      dataFormats: ['application/json']
+    },
+    social: {
+      dataFormats: ['application/json']
+    },
+    messaging: {
+      dataFormats: ['application/json']
+    },
+    phone: {
+      dataFormats: ['application/json']
+    },
+    address: {
+      dataFormats: ['application/json']
+    },
+    avatar: {
+      dataFormats: ['image/gif', 'image/png', 'image/jpeg']
+    },
+    hero: {
+      dataFormats: ['image/gif', 'image/png', 'image/jpeg']
+    }
+  },
+  structure: {
+    social: {},
+    avatar: {},
+    hero: {},
+    name: {},
+    messaging: {},
+    address: {},
+    phone: {}
+  }
+}
 
 export const profile = {
-  uri: profileProtocolUri,
-  schemas: profileSchemas,
-  definition: {
-    published: true,
-    protocol: profileProtocolUri,
-    types: {
-      name: {
-        schema: profileSchemas.name,
-        dataFormats: ['application/json']
-      },
-      social: {
-        schema: profileSchemas.social,
-        dataFormats: ['application/json']
-      },
-      messaging: {
-        schema: profileSchemas.messaging,
-        dataFormats: ['application/json']
-      },
-      phone: {
-        schema: profileSchemas.phone,
-        dataFormats: ['application/json']
-      },
-      address: {
-        schema: profileSchemas.address,
-        dataFormats: ['application/json']
-      },
-      avatar: {
-        schema: profileSchemas.avatar,
-        dataFormats: ['image/gif', 'image/png', 'image/jpeg']
-      },
-      hero: {
-        schema: profileSchemas.hero,
-        dataFormats: ['image/gif', 'image/png', 'image/jpeg']
-      }
-    },
-    structure: {
-      social: {},
-      avatar: {},
-      hero: {},
-      name: {},
-      messaging: {},
-      address: {},
-      phone: {}
-    }
-  }
+  uri: profileDefinition.protocol,
+  schemas: addSchemas(profileDefinition),
+  definition: profileDefinition
 }

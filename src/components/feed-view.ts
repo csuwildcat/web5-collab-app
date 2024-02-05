@@ -125,7 +125,6 @@ export class FeedView extends LitElement {
       this.posts.delete(this.unconfirmedPost);
 
       DOM.fireEvent(this, 'post-published', {
-        composed: true,
         detail: {
           record: this.unconfirmedPost
         }
@@ -153,7 +152,6 @@ export class FeedView extends LitElement {
 
   openEditor(record){
     DOM.fireEvent(this, 'open-editor', {
-      composed: true,
       detail: {
         record: record
       }

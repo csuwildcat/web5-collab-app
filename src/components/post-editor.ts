@@ -159,7 +159,6 @@ export class PostEditor extends LitElement {
 
   close(){
     DOM.fireEvent(this, 'close-editor', {
-      composed: true,
       detail: {
         record: this.record
       }

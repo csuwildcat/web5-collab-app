@@ -57,7 +57,6 @@ export class PageFollows extends LitElement {
   constructor() {
     super();
     follows.initialize().then(() => {
-      console.log(follows);
       this.requestUpdate()
     });
   }

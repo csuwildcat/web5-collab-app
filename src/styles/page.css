@@ -42,6 +42,10 @@ form[loading] sl-textarea::part(textarea) {
   font-size: 0.75em;
 }
 
+sl-input, sl-textarea {
+  margin: 0 0 1em;
+}
+
 [flex] {
   display: flex;
 }

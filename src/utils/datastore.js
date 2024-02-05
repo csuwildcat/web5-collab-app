@@ -24,7 +24,7 @@ class Datastore {
     const response = await this.dwn.protocols.query({
       message: {
         filter: {
-          protocol: protocols.dai1y.uri
+          protocol: protocols['sync'].uri
         }
       }
     });
@@ -150,7 +150,7 @@ class Datastore {
     return record;
   }
 
-  createPost = (options = {}) => this.createProtocolRecord('dai1y', 'post', {
+  createPost = (options = {}) => this.createProtocolRecord('sync', 'post', {
     data: options.data,
     dataFormat: 'application/json'
   })
@@ -198,7 +198,7 @@ class Datastore {
     return record;
   }
 
-  getPosts = (options = {}) => this.queryProtocolRecords('dai1y', 'post', options)
+  getPosts = (options = {}) => this.queryProtocolRecords('sync', 'post', options)
 
   getPostsAfter = (options = {}) => {
     return this.queryProtocolRecords('profile', 'avatar', Object.assign({
@@ -226,7 +226,61 @@ class Datastore {
     return this.createProtocolRecord('profile', 'avatar', options)
   }
 
-  queryFollows = (options = {}) => this.queryProtocolRecords('dai1y', 'follow', options)
+  queryFollows = (options = {}) => this.queryProtocolRecords('sync', 'follow', options)
+
+  async createCommunity(options = {}) {
+    const record = await this.createProtocolRecord('sync', 'community', options);
+    record.cache = {
+      json: await record.data.json()
+    }
+    return record;
+  }
+
+  async queryCommunities (options = {}) {
+    const records = await this.queryProtocolRecords('sync', 'community', options)
+    await Promise.all(records.map(async record => {
+      record.cache = {
+        json: await record.data.json()
+      }
+    }))
+    return records;
+  }
+
+  async createChannel(communityId, options = {}) {
+    const record = await this.createProtocolRecord('sync', 'community/channel', Object.assign({ parentId: communityId }, options));
+    record.cache = {
+      json: await record.data.json()
+    }
+    return record;
+  }
+
+  async getChannels (communityId, options = {}) {
+    const records = await this.queryProtocolRecords('sync', 'community/channel', Object.assign({ parentId: communityId }, options))
+    await Promise.all(records.map(async record => {
+      record.cache = {
+        json: await record.data.json()
+      }
+    }))
+    return records;
+  }
+
+  async createConvo(communityId, options = {}) {
+    const record = await this.createProtocolRecord('sync', 'community/convo', Object.assign({ parentId: communityId }, options));
+    record.cache = {
+      json: await record.data.json()
+    }
+    return record;
+  }
+
+  async getConvos (communityId, options = {}) {
+    const records = await this.queryProtocolRecords('sync', 'community/convo', Object.assign({ parentId: communityId }, options))
+    await Promise.all(records.map(async record => {
+      record.cache = {
+        json: await record.data.json()
+      }
+    }))
+    return records;
+  }
 
   async toggleFollow(did, follow){
     await datastore.queryFollows({ recipient: did, latestRecord: true }).then(async (record) => {
@@ -244,7 +298,7 @@ class Datastore {
         return record;
       }
       else {
-        const { record, status } = await datastore.createProtocolRecord('dai1y', 'follow', { recipient: did, dataFormat: 'application/json' })
+        const { record, status } = await datastore.createProtocolRecord('sync', 'follow', { recipient: did, dataFormat: 'application/json' })
         return record;
       }
     })

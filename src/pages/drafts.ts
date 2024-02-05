@@ -157,7 +157,6 @@ export class PageDrafts extends LitElement {
       this.drafts.delete(this.unconfirmedPost);
 
       DOM.fireEvent(this, 'post-published', {
-        composed: true,
         detail: {
           record: this.unconfirmedPost
         }
@@ -186,7 +185,6 @@ export class PageDrafts extends LitElement {
 
   openEditor(record){
     DOM.fireEvent(this, 'open-editor', {
-      composed: true,
       detail: {
         record: record
       }

@@ -26,7 +26,8 @@ var DOM = {
   wait: ms => new Promise(resolve => setTimeout(() => resolve(), ms)),
   fireEvent(node, type, options = {}){
     return node.dispatchEvent(new CustomEvent(type, Object.assign({
-      bubbles: true
+      bubbles: true,
+      composed: true
     }, options)))
   },
   addEventDelegate(type, selector, fn, options = {}){

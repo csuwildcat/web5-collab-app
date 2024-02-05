@@ -9,7 +9,7 @@ export class AppRouter extends Router {
       if (typeof selector === 'string') {
         enteringRoute.component = () => element.renderRoot.querySelector(selector);
       }
-      enteringRoute.enter = async () => {
+      enteringRoute.enter = async (path) => {
         await Promise.all(
           routes.reduce((promises, route) => {
             const leavingComponent = route.component();
@@ -20,10 +20,11 @@ export class AppRouter extends Router {
             return promises;
           }, [props?.onRouteChange?.(enteringRoute)]).concat([
             enteringRoute?.onEnter?.(),
-            enteringRoute.component()?.onPageEnter?.()
+            enteringRoute.component()?.onPageEnter?.(path)
           ])
         )
         enteringRoute.component().setAttribute('state', 'active');
+        enteringRoute?.render?.call(this, path);
       }
       return enteringRoute;
     }))

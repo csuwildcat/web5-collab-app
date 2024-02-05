@@ -5,8 +5,8 @@
 */
 :root {
   --font-family: 'Roboto Slab', serif;
-  --header-bk: rgb(25 127 89);
-  --link-color: rgb(82, 206, 160) !important;
+  --header-bk: rgb(106 0 116);
+  --link-color: rgb(242, 99, 255) !important;
   --header-text: #000;
   --body-bk: #181818;
   --header-bar: #2c2e31;

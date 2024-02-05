@@ -26,7 +26,6 @@ async function toggle (did){
   await datastore.toggleFollow(did, state);
   state ? entries.add(did) : entries.delete(did);
   DOM.fireEvent(document, 'follow-change', {
-    composed: true,
     detail: {
       did: did,
       following: state

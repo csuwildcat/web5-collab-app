@@ -107,7 +107,6 @@ export class PageSettings extends LitElement {
   async initialize(){
     this.socialRecord = await datastore.getSocial() || await datastore.createSocial({ data: this.socialData });
     this.socialData = await this.socialRecord.cache.json || this.socialData;
-    console.log(this.socialRecord);
 
     await this.setAvatar(null, false);
     this.requestUpdate();
@@ -125,7 +124,6 @@ export class PageSettings extends LitElement {
         if (this.avatarRecord) await this.avatarRecord.delete();
         this.avatarRecord = await datastore.createAvatar({ data: blob });
         const { status } = await this.avatarRecord.send(userDID);
-        console.log(status);
       }
       else if (this.avatarRecord) {
         blob = await this.avatarRecord.data.blob();
@@ -135,7 +133,6 @@ export class PageSettings extends LitElement {
       console.log(e);
     }
     this.avatarDataUri = blob ? URL.createObjectURL(blob) : undefined;
-    console.log(this.avatarDataUri);
     if (update !== false) this.requestUpdate();
   }
 
@@ -169,7 +166,7 @@ export class PageSettings extends LitElement {
 
           <h2>Profile Info</h2>
 
-          <div id="profile_image_container" @click="${e => console.log(e.currentTarget.lastElementChild.click())}">
+          <div id="profile_image_container" @click="${e => e.currentTarget.lastElementChild.click()}">
             <w5-img id="profile_image" src="${ifDefined(this.avatarDataUri)}" fallback="person"></w5-img>
             <small>(click to change image)</small>
             <input id="profile_image_input" type="file" accept="image/png, image/jpeg, image/gif" style="display: none"  @change="${this.handleFileChange}" />
