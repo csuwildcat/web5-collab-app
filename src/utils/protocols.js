@@ -10,17 +10,111 @@ function addSchemas(config) {
   }, {})
 }
 
-const adminOrCreator = [
+const adminOrCreatorActions = [
   {
     who: 'author',
     of: 'community',
     can: 'write'
   },
   {
+    who: 'author',
+    of: 'community',
+    can: 'delete'
+  },
+  {
     role: 'community/admin',
     can: 'write'
+  },
+  {
+    role: 'community/admin',
+    can: 'delete'
   }
 ];
+
+const memberActions = [{
+  role: 'community/member',
+  can: 'write'
+},
+{
+  role: 'community/member',
+  can: 'delete'
+}]
+
+const channelTemplate = {
+  $actions: adminOrCreatorActions,
+  message: {
+    $actions: [
+      {
+        who: 'author',
+        of: 'community',
+        can: 'write'
+      },
+      {
+        who: 'recipient',
+        of: 'community/channel/message',
+        can: 'write'
+      },
+      {
+        role: 'community/admin',
+        can: 'write'
+      },
+      {
+        role: 'community/admin',
+        can: 'delete'
+      }
+    ],
+    media: {
+      $actions: [
+        {
+          who: 'author',
+          of: 'community/channel/message',
+          can: 'write'
+        }
+      ]
+    },
+    reaction: {
+      $actions: memberActions
+    }
+  }
+};
+const allMemberChannel = JSON.parse(JSON.stringify(channelTemplate));
+      allMemberChannel.message.$actions.concat(memberActions)
+      allMemberChannel.message.reaction.$actions.concat(memberActions)
+
+const privateChannel = JSON.parse(JSON.stringify(channelTemplate))
+
+privateChannel.participant = {
+  $role: true,
+  $actions: [
+    {
+      who: 'author',
+      of: 'community/channel',
+      can: 'write'
+    },
+    {
+      who: 'author',
+      of: 'community/channel',
+      can: 'delete'
+    },
+    {
+      role: 'community/channel/participant',
+      can: 'write'
+    },
+    {
+      role: 'community/channel/participant',
+      can: 'delete'
+    },
+  ]
+}
+
+privateChannel.message.$actions.concat([{
+  role: 'community/channel/participant',
+  can: 'write'
+},
+{
+  role: 'community/channel/participant',
+  can: 'delete'
+}])
 
 const appDefinition = {
   published: true,
@@ -53,6 +147,9 @@ const appDefinition = {
     admin: {
       dataFormats: ['application/json']
     },
+    member: {
+      dataFormats: ['application/json']
+    },
     participant: {
       dataFormats: ['application/json']
     },
@@ -70,128 +167,46 @@ const appDefinition = {
         }
       ]
     },
-    friend: {
-      $globalRole: true
-    },
     community: {
       admin: {
         $contextRole: true,
-        $actions: [
-          {
-            who: 'author',
-            of: 'community',
-            can: 'write'
-          },
-          {
-            role: 'community/admin',
-            can: 'write'
-          }
-        ]
+        $actions: adminOrCreatorActions
       },
-      participant: {
+      member: {
         $contextRole: true,
-        $actions: adminOrCreator
+        $actions: adminOrCreatorActions
       },
       overview: {
-        $actions: adminOrCreator
+        $actions: adminOrCreatorActions
       },
       image: {
-        $actions: adminOrCreator
+        $actions: adminOrCreatorActions
       },
-      channel: {
-        $actions: [
-          {
-            who: 'anyone',
-            can: 'write'
-          },
-          {
-            role: 'community/admin',
-            can: 'write'
-          },
-          {
-            role: 'community/admin',
-            can: 'delete'
-          }
-        ],
-        message: {
-          $actions: [
-            {
-              who: 'anyone',
-              can: 'write'
-            },
-            {
-              role: 'community/admin',
-              can: 'write'
-            },
-            {
-              role: 'community/participant',
-              can: 'write'
-            },
-            {
-              role: 'community/admin',
-              can: 'delete'
-            },
-            {
-              role: 'community/participant',
-              can: 'delete'
-            }
-          ],
-          media: {
-            $actions: [
-              {
-                who: 'author',
-                of: 'community/channel/message',
-                can: 'write'
-              }
-            ]
-          },
-          reaction: {
-            $actions: [
-              {
-                who: 'anyone',
-                can: 'write'
-              }
-            ]
-          }
-        }
-      },
+      channel: allMemberChannel,
       convo: {
         $actions: [
           {
-            role: 'community/admin',
+            role: 'community/member',
             can: 'write'
-          },
-          {
-            role: 'community/admin',
-            can: 'delete'
           }
         ],
         message: {
           $actions: [
+            {
+              who: 'author',
+              of: 'community/convo',
+              can: 'write'
+            },
             {
               who: 'recipient',
               of: 'community/convo/message',
               can: 'write'
-            },
-            {
-              who: 'author',
-              of: 'community/convo/message',
-              can: 'delete'
             }
           ],
           media: {
             $actions: [
               {
                 who: 'author',
-                of: 'community/convo/message',
-                can: 'write'
-              }
-            ]
-          },
-          reaction: {
-            $actions: [
-              {
-                who: 'recipient',
                 of: 'community/convo/message',
                 can: 'write'
               }

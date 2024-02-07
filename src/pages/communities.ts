@@ -2,17 +2,25 @@ import { LitElement, html, css, unsafeCSS } from 'lit';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { customElement, query } from 'lit/decorators.js';
 
+import { AppRoutes } from '../components/router';
+
 import PageStyles from  '../styles/page.css';
 import * as markdown from  '../utils/markdown.js';
 
-import '../components/feed-view';
+import '../components/community-channel';
 
 @customElement('page-communities')
 export class PageCommunities extends LitElement {
+
   static styles = [
     unsafeCSS(PageStyles),
     markdown.styles,
     css`
+      :host {
+        display: flex;
+        overflow: auto !important;
+      }
+
       :host > section {
         padding: 0;
       }
@@ -23,59 +31,55 @@ export class PageCommunities extends LitElement {
     `
   ]
 
-
   constructor() {
     super();
-    window.addEventListener('post-published', e => {
-      this.feedView.processPost(e.detail.record);
-    })
     this.initialize();
   }
 
+  static properties = {
+    community: { type: String, reflect: true }
+  };
+
+  private #routes = new AppRoutes(this, [
+    {
+      path: 'channels/:channel',
+      component: '#channel',
+    },
+    {
+      path: 'convos/:convo',
+      component: '#convo'
+    }
+  ], {
+    onRouteChange: (route, path) => {
+      if (path.channel) {
+        this.channel = path.channel;
+      }
+      else if (path.convo) {
+        this.convo = path.convo;
+      }
+      this.requestUpdate();
+    }
+  });
+
   async initialize(){
+    // setTimeout(() => {
+    //   console.log(this.community);
+    // }, 2000)
     await datastore.ready;
   }
 
-  async onPageEnter(path){
-    this.communityId = path.id;
+  #community = '';
+  get community() {
+    return this.#community;
   }
-
-  #communityId;
-  set communityId(id){
-    this.#communityId = id;
-    Promise.all([
-      this.loadChannels(),
-      this.loadConvos()
-    ]).then(() => this.requestUpdate())
-  }
-
-  get communityId(){
-    return this.#communityId;
-  }
-
-  async loadChannels(){
-    const channels = await datastore.getChannels(this.#communityId);
-    DOM.fireEvent(this, 'channels-loaded', {
-      detail: {
-        channels: channels
-      }
-    })
-    console.log(channels);
-  }
-
-  async loadConvos(){
-    const convos = await datastore.getConvos(this.#communityId);
-    DOM.fireEvent(this, 'convos-loaded', {
-      detail: {
-        channels: convos
-      }
-    })
-    console.log(convos);
+  set community(id) {
+    this.#community = id;
+    this.requestUpdate();
   }
 
   render() {
     return html`
-
+      <community-channel id="channel" community="${this.community}" channel="${this.channel}"></community-channel>
     `;
   }
 }

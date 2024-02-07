@@ -11,7 +11,6 @@ import PageStyles from  './styles/page.css';
 
 import '@vaadin/app-layout/theme/lumo/vaadin-app-layout.js';
 import '@vaadin/app-layout/theme/lumo/vaadin-drawer-toggle.js';
-import '@vaadin/tabs/theme/lumo/vaadin-tabs.js';
 
 import './pages/home';
 import './pages/communities';
@@ -66,6 +65,40 @@ export class AppContainer extends LitElement {
         height: 100%;
       }
 
+      main {
+        position: relative;
+        height: 100%;
+      }
+
+      main > * {
+        position: absolute;
+        box-sizing: border-box;
+        height: 100%;
+        width: 100%;
+        opacity: 0;
+        background-color: var(--body-bk) !important;
+        visibility: hidden;
+        transition: visibility 0.3s, opacity 0.3s ease;
+        overflow-y: scroll;
+        z-index: -1;
+      }
+
+      main > [state="active"] {
+        opacity: 1;
+        z-index: 0;
+        visibility: visible;
+      }
+
+      h1 {
+        display: flex;
+        align-items: center;
+      }
+
+      h1 img {
+        height: 2em;
+        margin-right: 0.5em;
+      }
+
       vaadin-drawer-toggle {
         display: flex;
         height: var(--lumo-size-m);
@@ -116,12 +149,28 @@ export class AppContainer extends LitElement {
         padding: 0.5em;
         background: rgba(0,0,0,0.15);
         border-right: 1px solid rgba(255,255,255,0.1);
-        box-shadow: 0px 0 2px 2px rgba(0, 0, 0, 0.3);
+        box-shadow: 0px 0 1px 2px rgba(0, 0, 0, 0.25);
       }
 
       #communities_list > * {
         margin-bottom: 0.75rem;
         cursor: pointer;
+      }
+
+      #communities_list sl-avatar {
+        animation: bouncyFadeIn 0.4s ease-out forwards;
+      }
+
+      #communities_list sl-avatar::part(base) {
+        box-shadow: 0 1px 2px 1px rgba(0 0 0 / 20%);
+      }
+
+      #communities_list sl-avatar[pressed]::part(base) {
+        box-shadow: 0 1px 2px 1px rgba(0 0 0 / 20%) inset;
+      }
+
+      #communities_list a[active] sl-avatar::part(base) {
+        border: 3px solid var(--sl-color-primary-600);
       }
 
       #community_nav {
@@ -130,59 +179,63 @@ export class AppContainer extends LitElement {
         width: 100%;
         margin: 0;
         padding: 0.5em;
+        background: rgba(0,0,0,0.25);
       }
 
-
-      #community_nav sl-tree > sl-tree-item {
+      #community_nav sl-details {
         border-bottom: 1px solid rgba(255,255,255,0.15)
       }
 
-      #community_nav sl-tree > sl-tree-item::part(label) {
-        flex: 1;
-        padding: 0.4em 0;
-        font-weight: bold;
-      }
-
-      #community_nav sl-tree > sl-tree-item sl-icon-button {
-        margin-left: auto;
-      }
-
-      #community_nav sl-tree-item:has(.empty-list-button) sl-tree-item::part(item) {
-        border: none;
-      }
-
-      #community_nav sl-tree-item:has(.empty-list-button) sl-tree-item::part(indentation),
-      #community_nav sl-tree-item:has(.empty-list-button) sl-tree-item::part(expand-button) {
-        display: none;
-      }
-
-      #community_nav sl-tree-item:has(.empty-list-button) sl-tree-item::part(label) {
-        flex: 1;
-        display: block;
-      }
-
-      #community_nav sl-tree .empty-list-button {
-        display: block;
-        margin: 0.5em;
-      }
-
-      #community_nav sl-tree-item sl-tree-item:last-child::part(item) {
-        padding: 0 0 0.5em;
-      }
-
-      #community_nav sl-tree-item sl-tree-item::part(indentation) {
-        width: 0;
-      }
-
       #community_nav sl-details::part(base) {
-        box-sizing: border-box;
-
         border: none;
         background: none;
       }
 
+      #community_nav sl-details::part(header) {
+        padding: 0.4em;
+      }
+
+      #community_nav sl-details::part(summary) {
+        order: 1;
+      }
+
+      #community_nav sl-details sl-icon-button[slot="summary"] {
+        margin-left: auto;
+      }
+
+      #community_nav sl-details::part(summary-icon) {
+        margin-right: 0.5em;
+      }
+
       #community_nav sl-details::part(content) {
-        padding: 0 0 0 1em;
+        padding: 0 0.4em 0.8em;
+      }
+
+      #community_nav sl-details a {
+        display: block;
+        padding: 0.2em 0.4em;
+        font-size: 90%;
+        color: unset;
+        text-decoration: none;
+        border-radius: 5px;
+        transition: background 0.3s ease;
+      }
+
+      #community_nav sl-details a:before {
+        content: '# ';
+      }
+
+      #community_nav sl-details a:hover {
+        background: rgba(255,255,255,0.05);
+      }
+
+      #community_nav sl-details a[active] {
+        color: var(--sl-color-primary-600);
+        background: rgba(255,255,255,0.1);
+      }
+
+      #community_nav sl-details .empty-list-button {
+        display: block;
       }
 
       vaadin-app-layout vaadin-tab {
@@ -196,45 +249,6 @@ export class AppContainer extends LitElement {
 
       vaadin-app-layout vaadin-tab a :first-child {
         margin: 0 0.5em 0 0;
-      }
-
-      main {
-        position: relative;
-        height: 100%;
-      }
-
-      main > * {
-        position: absolute;
-        box-sizing: border-box;
-        height: 100%;
-        width: 100%;
-        opacity: 0;
-        background-color: var(--body-bk) !important;
-        visibility: hidden;
-        transition: visibility 0.3s, opacity 0.3s ease;
-        overflow-y: scroll;
-        z-index: -1;
-      }
-
-      main > [state="active"] {
-        opacity: 1;
-        z-index: 0;
-        visibility: visible;
-      }
-
-      h1 {
-        display: flex;
-        align-items: center;
-      }
-
-      h1 img {
-        height: 2em;
-        margin-right: 0.5em;
-      }
-
-      #editor {
-        position: fixed;
-        z-index: 2;
       }
 
       #profile_card_popup {
@@ -280,10 +294,23 @@ export class AppContainer extends LitElement {
 
 
       @media(max-width: 500px) {
-        #editor {
-          --modal-height: 100%;
-          --modal-width: 100%;
-          --modal-border-radius: 0rem;
+
+      }
+
+      @keyframes bouncyFadeIn {
+        0% {
+          transform: scale(0);
+          opacity: 0;
+        }
+        60% {
+          transform: scale(1.1);
+          opacity: 1;
+        }
+        80% {
+          transform: scale(0.9);
+        }
+        100% {
+          transform: scale(1);
         }
       }
 
@@ -332,9 +359,6 @@ export class AppContainer extends LitElement {
     `
   ]
 
-  @query('#editor', true)
-  editor;
-
   @query('#profile_card_popup', true)
   profileCardPopup;
 
@@ -347,16 +371,26 @@ export class AppContainer extends LitElement {
   @query('#new_community_description', true)
   newCommunityDescription
 
+  @query('#add_channel_modal', true)
+  addChannelModal
+
+  @query('#new_channel_name', true)
+  newChannelName
+
+  @query('#new_channel_description', true)
+  newChannelDescription
+
   constructor() {
     super();
 
-    window.startTime = new Date().getTime();
+    this.initialize();
 
     this.router = globalThis.router = new AppRouter(this, {
-      onRouteChange: (enteringRoute) => {
-        if (this.nav){
-          this.nav.selected = [...this.nav.children].indexOf(this.renderRoot.querySelector(`vaadin-tab a[href="${enteringRoute.path}"]`).parentNode)
+      onRouteChange: (route, path) => {
+        if (this.initialized) {
+          localStorage.lastActivePath = location.href.split(location.origin)?.[1] || null;
         }
+        this.community = path.community;
         this.renderRoot.querySelector('#app_layout')?.__closeOverlayDrawer()
       },
       routes: [
@@ -365,8 +399,16 @@ export class AppContainer extends LitElement {
           component: '#home'
         },
         {
-          path: '/communities/:id',
-          component: '#communities'
+          path: '/communities{/}?',
+          component: '#communities',
+        },
+        {
+          path: '/communities/:community?',
+          component: '#communities',
+        },
+        {
+          path: '/communities/:community/*',
+          component: '#communities',
         },
         {
           path: '/drafts',
@@ -382,32 +424,51 @@ export class AppContainer extends LitElement {
         }
       ]
     });
-
-    this.initialize();
-
-    this.addEventListener('open-editor', e => this.openEditor(e.detail.record))
-
-    this.addEventListener('channels-loaded', e => {
-      this.channels = e.detail.channels || [];
-    })
-
-    this.addEventListener('convos-loaded', e => {
-      this.convos = e.detail.convos || [];
-    })
   }
 
   async initialize(){
-    this.communities = await datastore.queryCommunities();
+    const promises = [];
+    this.communities = await datastore.getCommunities();
+    const firstCommunity = this.communities?.[0]?.id;
+    const lastActivePath = localStorage.lastActivePath;
+    this.initialized = true;
+    this.router.navigateTo(lastActivePath ? lastActivePath : firstCommunity ? '/communities/' + firstCommunity : '/settings');
     this.requestUpdate();
   }
 
   firstUpdated() {
-    this.nav = this.renderRoot.querySelector('#global_nav');
     DOM.skipFrame(() => this.router.goto(location.pathname));
   }
 
-  openEditor(record){
-    this.editor.open(record);
+  #community;
+  get community(){
+    return this.#community;
+  }
+  set community(id){
+    if (!this.communities) return;
+    const record = this.communities.find(community => community.id === id);
+    if (!record) {
+      this.#community = null;
+      this.channels = [];
+      this.convos = [];
+      return;
+    }
+    this.#community = record;
+    Promise.all([
+      this.#loadChannels(),
+      this.#loadConvos()
+    ]).then(() => {
+      this.router
+      this.requestUpdate()
+    })
+  }
+
+  private async #loadChannels(){
+    this.channels = await datastore.getChannels(this.#community.id);
+  }
+
+  private async #loadConvos(){
+    this.convos = await datastore.getConvos(this.#community.id);
   }
 
   async createCommunity(e){
@@ -425,13 +486,41 @@ export class AppContainer extends LitElement {
       this.communities.push(community);
       console.log('send', status, this.communities);
       notify.success('Your new community was created!')
-      this.addCommunityModal.close();
+      this.addCommunityModal.hide();
+      this.requestUpdate();
     }
     catch(e) {
       notify.error('There was a problem creating your new community')
     }
   }
 
+  async createChannel(){
+    const name = this.newChannelName.value;
+    const description = this.newChannelDescription.value;
+    if (!name || !description) {
+      notify.error('You must add a name and description to create a new community')
+      return;
+    }
+    const channel = await datastore.createChannel(this.#community.id, { data: {
+      name,
+      description
+    }});
+    try {
+      this.channels.push(channel);
+      console.log('send', status, this.channels);
+      notify.success('Your new channel was created!')
+      this.addChannelModal.hide();
+      this.requestUpdate();
+    }
+    catch(e) {
+      notify.error('There was a problem creating your new channel')
+    }
+  }
+
+  channelAddHandler(e){
+    e.cancelBubble = true;
+    this.addChannelModal.show()
+  }
 
   render() {
     return html`
@@ -449,97 +538,58 @@ export class AppContainer extends LitElement {
         <sl-avatar id="user_avatar" label="User avatar" slot="navbar"></sl-avatar>
 
         <menu id="communities_list" slot="drawer">
-
           <sl-icon-button name="plus-circle" label="Add Community" style="font-size: 2rem;" @click="${e => this.addCommunityModal.show()}"></sl-icon-button>
           ${
             (this.communities || []).map(community => {
-
-              return html`<a tabindex="-1" href="/communities/${community.id}"><sl-avatar label="${community.cache.json.name}"></sl-avatar></a>`
+              const href = `/communities/${community.id}`
+              return html`<a tabindex="-1" href="${href}" ?active="${location.pathname.match(href)}"><sl-avatar pressable label="${community.cache.json.name}"></sl-avatar></a>`
             })
           }
-
         </menu>
 
-
-
-
         <div id="community_nav" slot="drawer">
-          <sl-tree selection="leaf">
-            <sl-tree-item expanded >
-              Channels <sl-icon-button name="plus-lg" label="Add Channel"></sl-icon-button>
-              ${
-                this.channels?.length ?
-                this.channels.map(channel => html`<sl-tree-item>${channel.name}</sl-tree-item>`) :
-                html`<sl-tree-item>
-                  <sl-button class="empty-list-button" variant="default" size="small">
-                    <sl-icon slot="prefix" name="plus-lg"></sl-icon>
-                    Add Channel
-                  </sl-button>
-                </sl-tree-item>`
-              }
-            </sl-tree-item>
 
-            <sl-tree-item expanded>
-              Convos <sl-icon-button name="plus-lg" label="Start Convo"></sl-icon-button>
-              ${
+          <sl-details id="channels" open>
+            <span slot="summary">Channels</span><sl-icon-button slot="summary" name="plus-lg" label="Add Channel" @click="${this.channelAddHandler}"></sl-icon-button>
+            ${
+              this.channels?.length ?
+                this.channels.map(channel => {
+                  const href = `/communities/${this.community.id}/channels/${channel.id}`;
+                  return html`
+                    <a href="${href}" ?active="${location.pathname.match(href)}">${channel.cache.json.name}</a>
+                `}) :
+                html`<sl-button class="empty-list-button" variant="default" size="small" @click="${this.channelAddHandler}">
+                  <sl-icon slot="prefix" name="plus-lg"></sl-icon>
+                  Add Channel
+                </sl-button>`
+            }
+          </sl-details>
+
+          <sl-details id="convos" open>
+            <span slot="summary">Convos</span><sl-icon-button slot="summary" name="plus-lg" label="Start Convo" @click=""></sl-icon-button>
+            ${
                 this.convos?.length ?
-                this.convos.map(channel => html`<sl-tree-item>${convo.name}</sl-tree-item>`) :
-                html`<sl-tree-item>
-                  <sl-button class="empty-list-button" variant="default" size="small">
-                    <sl-icon slot="prefix" name="plus-lg"></sl-icon>
-                    Start Convo
-                  </sl-button>
-                </sl-tree-item>`
+                this.convos.map(convo => {
+                  const href = `/communities/${this.community.id}/convo/${convo.id}`;
+                  return html`<a href="${href}" ?active="${location.pathname.match(href)}">${convo.cache.json.name}</a>`
+                }) :
+                html`<sl-button class="empty-list-button" variant="default" size="small">
+                  <sl-icon slot="prefix" name="plus-lg"></sl-icon>
+                  Start Convo
+                </sl-button>`
               }
-            </sl-tree-item>
-          </sl-tree>
+          </sl-details>
         </div>
-
-
-        <!-- <vaadin-tabs id="global_nav" slot="drawer" orientation="vertical">
-          <vaadin-tab>
-            <a tabindex="-1" href="/">
-              <sl-icon name="house"></sl-icon>
-              <span>Home</span>
-            </a>
-          </vaadin-tab>
-          <vaadin-tab>
-            <a tabindex="-1" href="/posts">
-              <sl-icon name="file-earmark-richtext"></sl-icon>
-              <span>My Posts</span>
-            </a>
-          </vaadin-tab>
-          <vaadin-tab>
-            <a tabindex="-1" href="/drafts">
-              <sl-icon name="pencil"></sl-icon>
-              <span>Drafts</span>
-            </a>
-          </vaadin-tab>
-          <vaadin-tab>
-            <a tabindex="-1" href="/follows">
-              <sl-icon name="people"></sl-icon>
-              <span>Follows</span>
-            </a>
-          </vaadin-tab>
-          <vaadin-tab>
-            <a tabindex="-1" href="/settings">
-              <sl-icon name="sliders"></sl-icon>
-              <span>Settings</span>
-            </a>
-          </vaadin-tab>
-        </vaadin-tabs> -->
 
         <main id="pages">
           <page-home id="home" scroll></page-home>
-          <page-communities id="communities" scroll></page-communities>
+          <page-communities id="communities" community="${this?.community?.id}" scroll></page-communities>
           <page-drafts id="drafts" scroll></page-drafts>
           <page-follows id="follows" scroll></page-follows>
           <page-settings id="settings" scroll></page-settings>
         </main>
 
       </vaadin-app-layout>
-
-      <post-editor id="editor"></post-editor>
 
       <sl-popup id="profile_card_popup" placement="bottom-start" flip
         @pointerenter="${ e => e.currentTarget.active = true }"
@@ -567,6 +617,15 @@ export class AppContainer extends LitElement {
         </sl-tab-group>
       </sl-dialog>
 
+      <sl-dialog id="add_channel_modal" label="Add a Channel">
+        <sl-input id="new_channel_name" label="Name" placeholder="Enter a name"></sl-input>
+        <sl-textarea id="new_channel_description" label="Description" placeholder="Enter a brief description"></sl-textarea>
+        <sl-button variant="primary" @click="${ e => this.createChannel() }">Create</sl-button>
+      </sl-dialog>
+
+      <sl-dialog id="start_convo_modal" label="Start a Convo">
+        <!-- TODO: Member picker -->
+      </sl-dialog>
     `;
   }
 }

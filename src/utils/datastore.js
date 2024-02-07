@@ -79,6 +79,9 @@ class Datastore {
       }
     }
     if (options.from) params.from = options.from;
+    if (options.parentId !== undefined) {
+      params.message.filter.parentId = options.parentId
+    }
     if (options.published !== undefined) {
       params.message.filter.published = options.published
     }
@@ -105,12 +108,15 @@ class Datastore {
     const schema = protocols[protocol].schemas[path.split('/').pop()];
     if (schema) params.message.schema = schema;
     if (options.from) params.from = options.from;
+    if (options.parentId) params.message.parentId = options.parentId;
+    if (options.contextId) params.message.contextId = options.contextId;
     if (options.data) params.data = options.data;
     if (options.dataFormat) params.message.dataFormat = options.dataFormat;
     if (options.published !== undefined) params.message.published = options.published;
     if (options.recipient) params.message.recipient = options.recipient;
     console.log(params);
-    const { record } = await this.dwn.records.create(params);
+    const { record, status } = await this.dwn.records.create(params);
+    console.log(status);
     await record.send(this.did).then(e => {
       console.log(e)
     }).catch(e => {
@@ -229,14 +235,16 @@ class Datastore {
   queryFollows = (options = {}) => this.queryProtocolRecords('sync', 'follow', options)
 
   async createCommunity(options = {}) {
-    const record = await this.createProtocolRecord('sync', 'community', options);
+    const record = await this.createProtocolRecord('sync', 'community', Object.assign({
+      dataFormat: 'application/json'
+    }, options));
     record.cache = {
       json: await record.data.json()
     }
     return record;
   }
 
-  async queryCommunities (options = {}) {
+  async getCommunities (options = {}) {
     const records = await this.queryProtocolRecords('sync', 'community', options)
     await Promise.all(records.map(async record => {
       record.cache = {
@@ -247,7 +255,11 @@ class Datastore {
   }
 
   async createChannel(communityId, options = {}) {
-    const record = await this.createProtocolRecord('sync', 'community/channel', Object.assign({ parentId: communityId }, options));
+    const record = await this.createProtocolRecord('sync', 'community/channel', Object.assign({
+      parentId: communityId,
+      contextId: communityId,
+      dataFormat: 'application/json'
+    }, options));
     record.cache = {
       json: await record.data.json()
     }
@@ -264,8 +276,34 @@ class Datastore {
     return records;
   }
 
+  async getChannelMessages (channelId, options = {}) {
+    const records = await this.queryProtocolRecords('sync', 'community/channel/message', Object.assign({ parentId: channelId }, options))
+    await Promise.all(records.map(async record => {
+      record.cache = {
+        json: await record.data.json()
+      }
+    }))
+    return records;
+  }
+
+  async createChannelMessage(communityId, channelId, options = {}) {
+    const record = await this.createProtocolRecord('sync', 'community/channel/message', Object.assign({
+      contextId: communityId,
+      parentId: channelId,
+      dataFormat: 'application/json'
+    }, options));
+    record.cache = {
+      json: await record.data.json()
+    }
+    return record;
+  }
+
   async createConvo(communityId, options = {}) {
-    const record = await this.createProtocolRecord('sync', 'community/convo', Object.assign({ parentId: communityId }, options));
+    const record = await this.createProtocolRecord('sync', 'community/convo', Object.assign({
+      contextId: communityId,
+      parentId: communityId,
+      dataFormat: 'application/json'
+    }, options));
     record.cache = {
       json: await record.data.json()
     }

@@ -46,6 +46,14 @@ sl-input, sl-textarea {
   margin: 0 0 1em;
 }
 
+*::part(form-control-label) {
+  margin: 0 0 0.4em;
+}
+
+[pressable] * {
+  pointer-events: none;
+}
+
 [flex] {
   display: flex;
 }

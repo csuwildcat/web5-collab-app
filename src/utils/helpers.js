@@ -96,9 +96,10 @@ const notify = {
 
 const pressedElements = [];
 document.addEventListener('pointerdown', e => {
-  const path = e.composedPath();
-  path[0].setAttribute('pressed', '');
-  pressedElements.push(path[0]);
+  const paths = e.composedPath();
+  const pressTarget = paths.find(node => node?.matches?.('[pressable]')) || paths[0];
+  pressTarget.setAttribute('pressed', '');
+  pressedElements.push(pressTarget);
 }, { passive: true, capture: true });
 
 window.addEventListener('pointerup', e => {
