@@ -1,12 +1,25 @@
-import { LitElement, html, css, unsafeCSS } from 'lit';
+import { LitElement, html, css, render, unsafeCSS } from 'lit';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { customElement, query } from 'lit/decorators.js';
 
 import { AppRoutes } from '../components/router';
 
-import { virtualListRenderer } from '@vaadin/virtual-list/lit.js';
-import '@vaadin/virtual-list/theme/lumo/vaadin-virtual-list.js';
+
 import '@vaadin/message-input/theme/lumo/vaadin-message-input.js';
+import { VirtualList } from '@vaadin/virtual-list';
+
+Object.defineProperty(VirtualList, 'template', {
+  get: function() {
+    const template = document.createElement('template');
+          template.innerHTML = `
+            <div id="items" style="overflow-anchor: none;">
+              <slot></slot>
+            </div>
+            <div style="height: 1px; overflow-anchor: auto;"></div>
+          `;
+    return template;
+  }
+});
 
 import PageStyles from  '../styles/page.css';
 import { DOM, notify } from '../utils/helpers';
@@ -28,8 +41,13 @@ export class CommunityChannel extends LitElement {
       }
 
       #message_list {
+        position: relative;
         flex: 1;
         padding: 0 1.1em;
+      }
+
+      #message_list * {
+        overflow-anchor: none;
       }
 
       #message_list_spinner {
@@ -112,7 +130,7 @@ export class CommunityChannel extends LitElement {
     this?.messageListSpinner?.setAttribute?.('show', '')
     const messages = (await Promise.all([
       await datastore.getChannelMessages(channel),
-      new Promise(resolve => setTimeout(resolve, messageListTransitionDuration))
+      DOM.delay(messageListTransitionDuration)
     ]))[0]
     if (channel === this.#channel) {
       this.messages = messages;
@@ -123,7 +141,7 @@ export class CommunityChannel extends LitElement {
 
   renderMessage(root, list, { item: record, index }) {
     const data = record.cache.json;
-    root.textContent = `#${date.toTimeDate(record.dateCreated)}: ${data.body}`;
+    render(html`#${date.toTimeDate(record.dateCreated)}: ${data.body}`, root);
   };
 
   async submitMessage(e){
@@ -139,7 +157,7 @@ export class CommunityChannel extends LitElement {
 
   render() {
     return html`
-      <vaadin-virtual-list id="message_list" .items="${this.messages}"></vaadin-virtual-list>
+      <vaadin-virtual-list id="message_list" .items="${this.messages}"><div anchor></div></vaadin-virtual-list>
       <vaadin-message-input @submit="${this.submitMessage}"></vaadin-message-input>
       <div id="message_list_spinner"><sl-spinner></sl-spinner></div>
     `;

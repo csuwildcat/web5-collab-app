@@ -15,6 +15,7 @@ var DOM = {
       resolve(e)
     });
   }),
+  delay: ms => new Promise(resolve => setTimeout(resolve, ms)),
   query: s => document.querySelector(s),
   queryAll: s => document.querySelectorAll(s),
   skipFrame: fn => new Promise(resolve => requestAnimationFrame(() => {
