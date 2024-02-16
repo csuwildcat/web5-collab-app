@@ -1,6 +1,10 @@
 
 import { LitElement, css, html, unsafeCSS } from 'lit';
-import { customElement, query } from 'lit/decorators.js';
+import { provide } from '@lit/context';
+import { AppContext, AppContextMixin } from './utils/context.js';
+import { customElement, query, property } from 'lit/decorators.js';
+import { ifDefined } from 'lit/directives/if-defined.js';
+import { setAnimation } from '@shoelace-style/shoelace/dist/utilities/animation-registry.js';
 import { AppRouter } from './components/router';
 
 import './styles/global.css';
@@ -13,12 +17,11 @@ import '@vaadin/app-layout/theme/lumo/vaadin-app-layout.js';
 import '@vaadin/app-layout/theme/lumo/vaadin-drawer-toggle.js';
 
 import './pages/home';
-import './pages/communities';
-import './pages/drafts';
-import './pages/follows';
-import './pages/settings';
+import './pages/community.js';
 
 import { ProfileCard } from './components/profile-card'
+import './components/profile-view'
+import './components/member-list'
 
 import { Web5 } from '@web5/api';
 const { web5, did: userDID } = await Web5.connect({
@@ -53,7 +56,20 @@ document.addEventListener('profile-card-popup', e => {
 })
 
 @customElement('app-container')
-export class AppContainer extends LitElement {
+export class AppContainer extends AppContextMixin(LitElement) {
+
+  @provide({ context: AppContext })
+  context = {
+    instance: this,
+    did: null,
+    avatar: null,
+    social: null,
+    community: null,
+    channel: null,
+    communities: new Map(),
+    channels: new Map(),
+    convos: new Map(),
+  };
 
   static styles = [
     unsafeCSS(PageStyles),
@@ -132,6 +148,7 @@ export class AppContainer extends LitElement {
         --size: 2.25em;
         margin-left: auto;
         margin-right: 0.5em;
+        cursor: pointer;
       }
 
       vaadin-app-layout::part(drawer) {
@@ -144,12 +161,14 @@ export class AppContainer extends LitElement {
       #communities_list {
         display: flex;
         flex-direction: column;
+        align-items: center;
         width: 4em;
         margin: 0;
         padding: 0.5em;
         background: rgba(0,0,0,0.15);
         border-right: 1px solid rgba(255,255,255,0.1);
         box-shadow: 0px 0 1px 2px rgba(0, 0, 0, 0.25);
+        z-index: 1;
       }
 
       #communities_list > * {
@@ -162,7 +181,13 @@ export class AppContainer extends LitElement {
       }
 
       #communities_list sl-avatar::part(base) {
+        border: 3px solid transparent;
         box-shadow: 0 1px 2px 1px rgba(0 0 0 / 20%);
+        transition: border-color 0.3s ease;
+      }
+
+      #communities_list a:hover sl-avatar::part(base) {
+        border-color: rgba(255,255,255,0.4);
       }
 
       #communities_list sl-avatar[pressed]::part(base) {
@@ -170,20 +195,48 @@ export class AppContainer extends LitElement {
       }
 
       #communities_list a[active] sl-avatar::part(base) {
-        border: 3px solid var(--sl-color-primary-600);
+        border-color: var(--sl-color-primary-600);
       }
 
       #community_nav {
+        position: relative;
         display: flex;
         flex-direction: column;
         width: 100%;
         margin: 0;
-        padding: 0.5em;
         background: rgba(0,0,0,0.25);
+      }
+
+      #community_nav > * {
+        margin: 0 0.75em;
+      }
+
+      #community_nav > header {
+        display: flex;
+        align-items: center;
+        height: 3em;
+        margin: 0;
+        padding: 0 0.5em;
+        background: rgba(255,255,255,0.05);
+        box-shadow: 0 0 3px 0px rgba(0,0,0,0.5);
+        border-bottom: 1px solid rgba(255,255,255,0.02);
+      }
+
+      #community_nav > header h2 {
+        margin: 0 0 0 0.2em;
+        font-size: 1.25em;
+      }
+
+      #community_nav > header sl-dropdown {
+        margin-left: auto;
       }
 
       #community_nav sl-details {
         border-bottom: 1px solid rgba(255,255,255,0.15)
+      }
+
+      #community_nav sl-details:first-of-type {
+        margin-top: 0.5em;
       }
 
       #community_nav sl-details::part(base) {
@@ -213,7 +266,7 @@ export class AppContainer extends LitElement {
 
       #community_nav sl-details a {
         display: block;
-        padding: 0.2em 0.4em;
+        padding: 0.25em 0.4em;
         font-size: 90%;
         color: unset;
         text-decoration: none;
@@ -291,7 +344,14 @@ export class AppContainer extends LitElement {
         padding-bottom: 0;
       }
 
+      #new_member_did {
+        flex: 1;
+        margin: 0 0.5em 0 0;
+      }
 
+      #new_member_profile_card {
+        margin: 2em 0 0;
+      }
 
       @media(max-width: 500px) {
 
@@ -365,6 +425,9 @@ export class AppContainer extends LitElement {
   @query('#add_community_modal', true)
   addCommunityModal
 
+  @query('#add_member_modal', true)
+  addMemberModal
+
   @query('#new_community_name', true)
   newCommunityName
 
@@ -380,17 +443,35 @@ export class AppContainer extends LitElement {
   @query('#new_channel_description', true)
   newChannelDescription
 
+  @query('#community_profile_modal', true)
+  communityProfileModal
+
+  @query('#member_profile_modal', true)
+  memberProfileModal
+
+  @query('#new_member_did', true)
+  newMemberDid
+
+  @query('#new_member_profile_card', true)
+  newMemberProfileCard
+
+  @query('#new_member_submit', true)
+  newMemberSubmit
+
+  @query('#view_members_modal', true)
+  viewMembersModal
+
   constructor() {
     super();
 
     this.initialize();
 
     this.router = globalThis.router = new AppRouter(this, {
-      onRouteChange: (route, path) => {
+      onRouteChange: async (route, path) => {
         if (this.initialized) {
-          localStorage.lastActivePath = location.href.split(location.origin)?.[1] || null;
+          const activePath = localStorage.lastActivePath = location.pathname || null;
         }
-        this.community = path.community;
+        this.setCommunity(path.community, path.channel);
         this.renderRoot.querySelector('#app_layout')?.__closeOverlayDrawer()
       },
       routes: [
@@ -399,24 +480,12 @@ export class AppContainer extends LitElement {
           component: '#home'
         },
         {
-          path: '/communities{/}?',
+          path: '/(communities)?/:community?/(channels)?/:channel?',
           component: '#communities',
         },
         {
-          path: '/communities/:community?',
+          path: '/(communities)?/:community?/(convos)?/:convo?',
           component: '#communities',
-        },
-        {
-          path: '/communities/:community/*',
-          component: '#communities',
-        },
-        {
-          path: '/drafts',
-          component: '#drafts'
-        },
-        {
-          path: '/follows',
-          component: '#follows'
         },
         {
           path: '/settings',
@@ -427,9 +496,9 @@ export class AppContainer extends LitElement {
   }
 
   async initialize(){
-    const promises = [];
-    this.communities = await datastore.getCommunities();
-    const firstCommunity = this.communities?.[0]?.id;
+    this.loadProfile(userDID);
+    await this.loadCommunities();
+    const firstCommunity = this.context.communities?.[0]?.id;
     const lastActivePath = localStorage.lastActivePath;
     this.initialized = true;
     this.router.navigateTo(lastActivePath ? lastActivePath : firstCommunity ? '/communities/' + firstCommunity : '/settings');
@@ -437,38 +506,22 @@ export class AppContainer extends LitElement {
   }
 
   firstUpdated() {
-    DOM.skipFrame(() => this.router.goto(location.pathname));
-  }
-
-  #community;
-  get community(){
-    return this.#community;
-  }
-  set community(id){
-    if (!this.communities) return;
-    const record = this.communities.find(community => community.id === id);
-    if (!record) {
-      this.#community = null;
-      this.channels = [];
-      this.convos = [];
-      return;
-    }
-    this.#community = record;
-    Promise.all([
-      this.#loadChannels(),
-      this.#loadConvos()
-    ]).then(() => {
-      this.router
-      this.requestUpdate()
+    const fadeOptions = { duration: 100 };
+    const fadeIn = { transform: 'scale(1)', opacity: '1' };
+    const fadeOut = { transform: 'scale(1.05)', opacity: '0' };
+    this.renderRoot.querySelectorAll('.modal-page').forEach(modal => {
+      setAnimation(modal, 'dialog.show', {
+        keyframes: [fadeOut,fadeIn],
+        options: fadeOptions
+      });
+      setAnimation(modal, 'dialog.hide', {
+        keyframes: [fadeIn,fadeOut],
+        options: fadeOptions
+      });
+    });
+    document.addEventListener('show-member-modal', e => {
+      this.viewUserProfile(e.detail.did)
     })
-  }
-
-  private async #loadChannels(){
-    this.channels = await datastore.getChannels(this.#community.id);
-  }
-
-  private async #loadConvos(){
-    this.convos = await datastore.getConvos(this.#community.id);
   }
 
   async createCommunity(e){
@@ -483,11 +536,10 @@ export class AppContainer extends LitElement {
       description
     }});
     try {
-      this.communities.push(community);
-      console.log('send', status, this.communities);
+      this.addCommunity(community);
+      console.log('send', status, this.context.communities);
       notify.success('Your new community was created!')
       this.addCommunityModal.hide();
-      this.requestUpdate();
     }
     catch(e) {
       notify.error('There was a problem creating your new community')
@@ -501,16 +553,16 @@ export class AppContainer extends LitElement {
       notify.error('You must add a name and description to create a new community')
       return;
     }
-    const channel = await datastore.createChannel(this.#community.id, { data: {
+    const channel = await datastore.createChannel(this.context.community.id, { data: {
       name,
       description
     }});
     try {
-      this.channels.push(channel);
+      this.addChannel(channel);
+      this.router.navigateTo(`/communities/${this.context.community.id}/channels/${channel.id}`);
       console.log('send', status, this.channels);
       notify.success('Your new channel was created!')
       this.addChannelModal.hide();
-      this.requestUpdate();
     }
     catch(e) {
       notify.error('There was a problem creating your new channel')
@@ -522,7 +574,44 @@ export class AppContainer extends LitElement {
     this.addChannelModal.show()
   }
 
+  addMemberProfileLookup(){
+    try {
+      this.newMemberProfileCard.did = this.newMemberDid.value;
+    }
+    catch(e) {
+
+    }
+  }
+
+  async addMember(){
+    const communityId = this.context?.community?.id;
+    if (communityId) {
+      const record = await datastore.addMember(this.newMemberProfileCard.did, communityId);
+      console.log(record);
+      return record;
+    }
+  }
+
+  async viewMembers(context, path){
+    const list = this.viewMembersModal.querySelector('member-list');
+    list.context = context;
+    list.path = path;
+    this.viewMembersModal.show()
+  }
+
+  memberProfileAvatarChange(){
+
+  }
+
+  viewUserProfile(did){
+    const profileView = this.memberProfileModal.querySelector('profile-view');
+    profileView.did = did || this.context.did;
+    this.memberProfileModal.show()
+  }
+
   render() {
+    const channels = this.getChannels();
+    const communityId = this.context?.community?.id
     return html`
 
       <vaadin-app-layout id="app_layout">
@@ -535,26 +624,42 @@ export class AppContainer extends LitElement {
         <h1 slot="navbar">5ync</h1>
         <small id="slogan" slot="navbar"></small>
 
-        <sl-avatar id="user_avatar" label="User avatar" slot="navbar"></sl-avatar>
+        <sl-avatar id="user_avatar" image="${this.context?.avatar?.cache?.uri}" label="User avatar" slot="navbar" @click="${ e => this.viewUserProfile() }"></sl-avatar>
 
         <menu id="communities_list" slot="drawer">
-          <sl-icon-button name="plus-circle" label="Add Community" style="font-size: 2rem;" @click="${e => this.addCommunityModal.show()}"></sl-icon-button>
+          <sl-icon-button name="plus-circle" label="Add Community" style="font-size: 1.6rem;" @click="${e => this.addCommunityModal.show()}"></sl-icon-button>
           ${
-            (this.communities || []).map(community => {
-              const href = `/communities/${community.id}`
-              return html`<a tabindex="-1" href="${href}" ?active="${location.pathname.match(href)}"><sl-avatar pressable label="${community.cache.json.name}"></sl-avatar></a>`
+            Array.from(this.context.communities).map(([id, community]) => {
+              const channel = channels[id];
+              const communitySegment = `/communities/${id}`;
+              const href = communitySegment + (channel ? `/channels/${channel}` : '');
+              return html`<a tabindex="-1" href="${href}" ?active="${location.pathname.match(communitySegment)}"><sl-avatar pressable label="${community.cache.json.name}"></sl-avatar></a>`
             })
           }
         </menu>
 
         <div id="community_nav" slot="drawer">
 
+          <header>
+            <h2>${this.context?.community?.cache?.json?.name}</h2>
+            <sl-dropdown>
+              <sl-icon-button name="list" slot="trigger" variant="text" size="small"></sl-icon-button>
+              <sl-menu>
+                <sl-menu-item @click="${ e => this.addMemberModal.show()}"><sl-icon name="person-add" slot="prefix"></sl-icon>Add a Member</sl-menu-item>
+                <sl-menu-item @click="${ e => this.viewMembers(communityId, 'community/member')}"><sl-icon name="people" slot="prefix"></sl-icon>View Members</sl-menu-item>
+                <sl-menu-item @click="${ e => this.communityProfileModal.show()}"><sl-icon name="pencil-square" slot="prefix"></sl-icon>Edit Profile</sl-menu-item>
+              </sl-menu>
+            </sl-dropdown>
+          </header>
+
+          ${ this.communityLogo ? html`<img src="${this.communityLogo.cache.uri}"/>` : '' }
+
           <sl-details id="channels" open>
             <span slot="summary">Channels</span><sl-icon-button slot="summary" name="plus-lg" label="Add Channel" @click="${this.channelAddHandler}"></sl-icon-button>
             ${
-              this.channels?.length ?
-                this.channels.map(channel => {
-                  const href = `/communities/${this.community.id}/channels/${channel.id}`;
+              this.context.channels.size ?
+              Array.from(this.context.channels).map(([id, channel]) => {
+                  const href = `/communities/${this.context.community.id}/channels/${id}`;
                   return html`
                     <a href="${href}" ?active="${location.pathname.match(href)}">${channel.cache.json.name}</a>
                 `}) :
@@ -568,9 +673,9 @@ export class AppContainer extends LitElement {
           <sl-details id="convos" open>
             <span slot="summary">Convos</span><sl-icon-button slot="summary" name="plus-lg" label="Start Convo" @click=""></sl-icon-button>
             ${
-                this.convos?.length ?
-                this.convos.map(convo => {
-                  const href = `/communities/${this.community.id}/convo/${convo.id}`;
+                this.context.convos.size ?
+                Array.from(this.context.convos).map(([id, convo]) => {
+                  const href = `/communities/${this.context.community.id}/convo/${id}`;
                   return html`<a href="${href}" ?active="${location.pathname.match(href)}">${convo.cache.json.name}</a>`
                 }) :
                 html`<sl-button class="empty-list-button" variant="default" size="small">
@@ -583,7 +688,7 @@ export class AppContainer extends LitElement {
 
         <main id="pages">
           <page-home id="home" scroll></page-home>
-          <page-communities id="communities" community="${this?.community?.id}" scroll></page-communities>
+          <page-community id="communities" scroll community="${communityId}" channel="${this.context.channel}"></page-community>
           <page-drafts id="drafts" scroll></page-drafts>
           <page-follows id="follows" scroll></page-follows>
           <page-settings id="settings" scroll></page-settings>
@@ -625,6 +730,42 @@ export class AppContainer extends LitElement {
 
       <sl-dialog id="start_convo_modal" label="Start a Convo">
         <!-- TODO: Member picker -->
+      </sl-dialog>
+
+      <sl-dialog id="add_member_modal" label="Add a Member">
+        <div flex="center-y">
+          <sl-input id="new_member_did"
+                    placeholder="Enter the new member's DID"
+                    @keydown="${ e => e.key === 'Enter' && this.addMemberProfileLookup() }"
+                    @keypress="${ e => {
+                      return !(/^[a-zA-Z0-9_\-:.]+$/.test(String.fromCharCode(e.charCode || e.which))) ? e.preventDefault() : true
+                    }}"
+          ></sl-input>
+          <sl-button variant="primary" @click="${ e => this.addMemberProfileLookup() }" slot="suffix">Find</sl-button>
+        </div>
+        <profile-card id="new_member_profile_card"
+          empty-text="🡱 Enter a DID above 🡱"
+          error-text="Couldn't find anything for that."
+          @profile-card-loading="${e => this.newMemberSubmit.loading = this.newMemberSubmit.disabled = true }"
+          @profile-card-loaded="${e => this.newMemberSubmit.loading = this.newMemberSubmit.disabled = false }"
+          @profile-card-error="${e => {
+            this.newMemberSubmit.loading = false;
+            this.newMemberSubmit.disabled = true;
+          }}"
+        ></profile-card>
+        <sl-button id="new_member_submit" variant="primary" @click="${ e => this.addMember() }" slot="footer" disabled>Add Member</sl-button>
+      </sl-dialog>
+
+      <sl-drawer id="view_members_modal" label="Community Members" placement="start">
+        <member-list></member-list>
+      </sl-drawer>
+
+      <sl-dialog id="community_profile_modal" label="Community Profile" class="modal-page" @sl-request-close="${e => e.detail.source === 'overlay' && e.preventDefault()}">
+
+      </sl-dialog>
+
+      <sl-dialog id="member_profile_modal" label="Member Profile" class="modal-page" @sl-request-close="${e => e.detail.source === 'overlay' && e.preventDefault()}">
+        <profile-view></profile-view>
       </sl-dialog>
     `;
   }

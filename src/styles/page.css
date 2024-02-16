@@ -132,6 +132,75 @@ sl-input, sl-textarea {
   background-color: rgba(255 255 255 / 0.075)
 }
 
+.modal-page::part(panel) {
+  height: 100%;
+  max-height: none;
+  width: 100%;
+  max-width: none;
+  box-shadow: none;
+  align-items: center;
+}
+
+.modal-page::part(overlay) {
+  background-color: hsl(240deg 5.26% 14.9%);
+}
+
+.modal-page::part(header),
+.modal-page::part(body),
+.modal-page::part(footer) {
+  width: 100%;
+}
+
+.modal-page::part(header),
+.modal-page::part(footer) {
+  max-width: 900px;
+}
+
+.modal-page::part(header) {
+  position: fixed;
+}
+
+.modal-page::part(title) {
+  padding: 1em 1em 1em 0.4em;
+  order: 1;
+}
+
+.modal-page::part(header-actions) {
+  padding: 0;
+}
+
+.modal-page::part(close-button) {
+  position: relative;
+  font-size: 1.3em;
+  cursor: pointer;
+}
+
+.modal-page::part(close-button):hover {
+  color: var(--sl-color-primary-600);
+}
+
+.modal-page::part(close-button)::before {
+  content: '🡨';
+  position: absolute;
+  left: 50%;
+  background: var(--sl-panel-background-color);
+  transform: translateX(-50%);
+}
+
+.modal-page::part(close-button) > * {
+  display: none;
+}
+
+.modal-page::part(body) {
+  padding-top: 5em;
+}
+
+.modal-page > * {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+
 #view_header {
   position: sticky;
   top: 0;

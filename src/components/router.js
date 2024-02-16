@@ -14,7 +14,7 @@ export class AppRouter extends Router {
           routes.reduce((promises, route) => {
             const leavingComponent = route.component?.();
             if (route !== enteringRoute && leavingComponent?.getAttribute('state') === 'active') {
-              promises.push(leavingComponent?.onPageLeave?.())
+              promises.push(leavingComponent?.onPageLeave?.(enteringRoute, path))
             }
             leavingComponent?.removeAttribute('state');
             return promises;
@@ -47,7 +47,7 @@ export class AppRoutes extends Routes {
           routes.reduce((promises, route) => {
             const leavingComponent = route.component?.();
             if (route !== enteringRoute && leavingComponent?.getAttribute('state') === 'active') {
-              promises.push(leavingComponent?.onPageLeave?.())
+              promises.push(leavingComponent?.onPageLeave?.(enteringRoute, path))
             }
             leavingComponent?.removeAttribute('state');
             return promises;

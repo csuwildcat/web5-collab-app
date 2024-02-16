@@ -29,7 +29,6 @@ class Datastore {
       }
     });
     if (response.protocols.length) {
-      console.log('existing');
       return true;
     }
     else {
@@ -114,16 +113,16 @@ class Datastore {
     if (options.dataFormat) params.message.dataFormat = options.dataFormat;
     if (options.published !== undefined) params.message.published = options.published;
     if (options.recipient) params.message.recipient = options.recipient;
-    console.log(params);
-    const { record, status } = await this.dwn.records.create(params);
-    console.log(status);
-    await record.send(this.did).then(e => {
+    if (options.role) params.message.protocolRole = path;
+    const response = await this.dwn.records.create(params);
+    console.log(response.status);
+    await response.record.send(this.did).then(e => {
       console.log(e)
     }).catch(e => {
       console.log(e)
     });
-    console.log(record);
-    return record;
+    console.log(response.record);
+    return response;
   }
 
   async getSocial(options = {}) {
@@ -145,7 +144,7 @@ class Datastore {
   }
 
   async createSocial(options = {}) {
-    const record = await this.createProtocolRecord('profile', 'social', {
+    const { record, status } = await this.createProtocolRecord('profile', 'social', {
       published: true,
       data: options.data,
       dataFormat: 'application/json'
@@ -156,10 +155,13 @@ class Datastore {
     return record;
   }
 
-  createPost = (options = {}) => this.createProtocolRecord('sync', 'post', {
-    data: options.data,
-    dataFormat: 'application/json'
-  })
+  createPost = (options = {}) => {
+    const { record, status } = this.createProtocolRecord('sync', 'post', {
+      data: options.data,
+      dataFormat: 'application/json'
+    })
+    return record;
+  }
 
   async getPost(postId){
     await this.ready;
@@ -174,13 +176,15 @@ class Datastore {
     return record;
   }
 
-  async readAvatar(did, returnAs){
+  async readAvatar(options = {}){
     await this.ready;
+    const did = options.from = options.from || this.did;
     if (did !== this.did) {
       const cached = Datastore.getCache(did, 'avatar');
       if (cached) return cached;
     }
-    const record = await this.getAvatar({ from: did });
+    const record = await this.getAvatar(options);
+    console.log(record);
     const blob = await record.data.blob();
     record.cache = {
       blob: blob,
@@ -221,7 +225,7 @@ class Datastore {
     latestRecord: true
   }, options))
 
-  createAvatar = (options = {}) => {
+  createAvatar = async (options = {}) => {
     if (options.data) {
       options.dataFormat = options.data.type;
       if (options.data instanceof File) {
@@ -229,13 +233,38 @@ class Datastore {
       }
     }
     options.published = true;
-    return this.createProtocolRecord('profile', 'avatar', options)
+    const { record, status } = await this.createProtocolRecord('profile', 'avatar', options)
+    return record;
+  }
+
+  async setAvatar(file, _record, from = this.did){
+    let record = _record || await datastore.getAvatar({ from });
+    let blob = file ? new Blob([file], { type: file.type }) : undefined;
+    try {
+      if (blob) {
+        if (record) await record.delete();
+        record = await this.createAvatar({ data: blob, from });
+        const { status } = await record.send(from);
+      }
+      else if (record) {
+        blob = await record.data.blob();
+      }
+    }
+    catch(e) {
+      console.log(e);
+    }
+    if (record) {
+      record.cache = record.cache || {};
+      record.cache.blob = blob;
+      record.cache.uri = blob ? URL.createObjectURL(blob) : undefined;
+    }
+    return record;
   }
 
   queryFollows = (options = {}) => this.queryProtocolRecords('sync', 'follow', options)
 
   async createCommunity(options = {}) {
-    const record = await this.createProtocolRecord('sync', 'community', Object.assign({
+    const { record, status } = await this.createProtocolRecord('sync', 'community', Object.assign({
       dataFormat: 'application/json'
     }, options));
     record.cache = {
@@ -255,7 +284,7 @@ class Datastore {
   }
 
   async createChannel(communityId, options = {}) {
-    const record = await this.createProtocolRecord('sync', 'community/channel', Object.assign({
+    const { record, status } = await this.createProtocolRecord('sync', 'community/channel', Object.assign({
       parentId: communityId,
       contextId: communityId,
       dataFormat: 'application/json'
@@ -287,7 +316,7 @@ class Datastore {
   }
 
   async createChannelMessage(communityId, channelId, options = {}) {
-    const record = await this.createProtocolRecord('sync', 'community/channel/message', Object.assign({
+    const { record, status } = await this.createProtocolRecord('sync', 'community/channel/message', Object.assign({
       contextId: communityId,
       parentId: channelId,
       dataFormat: 'application/json'
@@ -299,7 +328,7 @@ class Datastore {
   }
 
   async createConvo(communityId, options = {}) {
-    const record = await this.createProtocolRecord('sync', 'community/convo', Object.assign({
+    const { record, status } = await this.createProtocolRecord('sync', 'community/convo', Object.assign({
       contextId: communityId,
       parentId: communityId,
       dataFormat: 'application/json'
@@ -315,6 +344,30 @@ class Datastore {
     await Promise.all(records.map(async record => {
       record.cache = {
         json: await record.data.json()
+      }
+    }))
+    return records;
+  }
+
+  async addMember(recipient, communityId, options = {}) {
+    const { record, status } = await this.createProtocolRecord('sync', 'community/member', Object.assign({
+      role: true,
+      recipient,
+      parentId: communityId,
+      contextId: communityId,
+      dataFormat: 'application/json'
+    }, options));
+    record.cache = {
+      json: await record.data.json()
+    }
+    return record;
+  }
+
+  async getMembers (parentId, protocolPath, options = {}) {
+    const records = await this.queryProtocolRecords('sync', protocolPath || 'community/member', Object.assign({ parentId: parentId }, options))
+    await Promise.all(records.map(async record => {
+      record.cache = {
+        json: await record.data.json().catch(e => {}).then(obj => obj)
       }
     }))
     return records;
