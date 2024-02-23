@@ -1,17 +1,20 @@
 
-import { LitElement, css, html, unsafeCSS } from 'lit';
+import { LitElement, css, html, nothing, unsafeCSS } from 'lit';
 import { provide } from '@lit/context';
 import { AppContext, AppContextMixin } from './utils/context.js';
 import { customElement, query, property } from 'lit/decorators.js';
 import { ifDefined } from 'lit/directives/if-defined.js';
 import { setAnimation } from '@shoelace-style/shoelace/dist/utilities/animation-registry.js';
 import { AppRouter } from './components/router';
+import * as protocols from './utils/protocols';
 
 import './styles/global.css';
 import './components/global.js';
 import './styles/theme.js';
-import { DOM, notify } from './utils/helpers';
+import { DOM, notify, natives } from './utils/helpers';
 import PageStyles from  './styles/page.css';
+
+import { SpinnerMixin, SpinnerStyles } from './utils/spinner';
 
 import '@vaadin/app-layout/theme/lumo/vaadin-app-layout.js';
 import '@vaadin/app-layout/theme/lumo/vaadin-drawer-toggle.js';
@@ -20,6 +23,7 @@ import './pages/home';
 import './pages/community.js';
 
 import { ProfileCard } from './components/profile-card'
+import './components/add-community'
 import './components/profile-view'
 import './components/member-list'
 
@@ -56,7 +60,7 @@ document.addEventListener('profile-card-popup', e => {
 })
 
 @customElement('app-container')
-export class AppContainer extends AppContextMixin(LitElement) {
+export class AppContainer extends AppContextMixin(SpinnerMixin(LitElement)) {
 
   @provide({ context: AppContext })
   context = {
@@ -69,16 +73,19 @@ export class AppContainer extends AppContextMixin(LitElement) {
     communities: new Map(),
     channels: new Map(),
     convos: new Map(),
+    invites: new Map(),
   };
 
   static styles = [
     unsafeCSS(PageStyles),
+    SpinnerStyles,
     css`
 
       :host {
         display: flex;
         flex-direction: column;
         height: 100%;
+        --communities-list-width: 5em;
       }
 
       main {
@@ -129,25 +136,55 @@ export class AppContainer extends AppContextMixin(LitElement) {
       }
 
       vaadin-app-layout #logo {
-        font-size: 1.2em;
+        fill: white;
+        height: 1.6em;
+        width: 1.6em;
       }
 
-      vaadin-app-layout #slogan {
+      /* vaadin-app-layout #slogan {
         color: rgba(255,255,255,0.5);
         margin: 0.2em 0 0;
         font-size: 0.8em;
+      } */
+
+      vaadin-app-layout h1.text-logo {
+        margin: 0 0.6em 0 0.15em;
+        font-size: 2.5em;
+        text-shadow: 0 1px 1px rgba(0,0,0,0.5);
       }
 
-      vaadin-app-layout h1 {
-        margin: 0 0.6em 0 0.4em;
-        font-size: 1.2em;
-        text-shadow: 0 1px 1px rgba(0,0,0,0.5);
+      vaadin-app-layout h1.text-logo + * {
+        margin-left: auto;
+      }
+
+      vaadin-app-layout h1.text-logo ~ *[slot="navbar"] {
+        margin-right: 0.5em;
+      }
+
+      #notification_button {
+        position: relative;
+        font-size: 1.45em;
+        color: white;
+      }
+
+      #notification_button[data-count]::after {
+        content: attr(data-count);
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        font-size: 0.5em;
+        background: red;
+        display: block;
+        border-radius: 4px;
+        padding: 0.1em 0.3em 0.1em 0.15em;
+        text-align: center;
+
       }
 
       #user_avatar {
         --size: 2.25em;
-        margin-left: auto;
-        margin-right: 0.5em;
+        border-radius: 100%;
+        box-shadow: 0 0 1px 2px rgba(255,255,255,0.8);
         cursor: pointer;
       }
 
@@ -158,13 +195,84 @@ export class AppContainer extends AppContextMixin(LitElement) {
         border-inline-end: 1px solid rgb(255 255 255 / 2%);
       }
 
+      #first_run_modal::part(body) {
+        display: flex;
+        padding: 0;
+      }
+
+      #first_run_modal section {
+        display: flex;
+        align-items: center;
+        margin: 0;
+        padding: 3em;
+      }
+
+      #first_run_modal section:first-child {
+        flex-direction: column;
+        justify-content: center;
+        width: 36%;
+        max-width: 500px;
+        background: linear-gradient(-45deg, #7f25bc, #159fd1, #129287);
+        background-size: 250% 250%;
+        animation: first-run-background 15s ease infinite;
+      }
+
+      #first_run_modal h1 {
+        font-size: 12.5em;
+        font-weight: normal;
+        line-height: 0.8em;
+        margin: 0 -0.1em 0 0;
+        text-shadow: 0px 1px 4px rgba(0,0,0,0.3);
+      }
+
+      #first_run_modal  section:first-child::after {
+        content: 'Open. Decentralized. Collaboration.';
+        font-size: 1em;
+      }
+
+
+      #first_run_modal add-community {
+        height: 350px;
+      }
+
+
+      @media(max-width: 900px) {
+
+        #first_run_modal::part(body) {
+          flex-direction: column;
+        }
+
+        #first_run_modal section {
+          width: auto !important;
+          justify-content: center;
+        }
+
+        #first_run_modal section:first-child {
+          max-width: none;
+        }
+
+      }
+
+      @keyframes first-run-background {
+        0% {
+            background-position: 0% 50%;
+        }
+        50% {
+            background-position: 100% 50%;
+        }
+        100% {
+            background-position: 0% 50%;
+        }
+      }
+
       #communities_list {
         display: flex;
         flex-direction: column;
         align-items: center;
-        width: 4em;
+        box-sizing: border-box;
+        width: var(--communities-list-width);
         margin: 0;
-        padding: 0.5em;
+        padding: 0.5em 0;
         background: rgba(0,0,0,0.15);
         border-right: 1px solid rgba(255,255,255,0.1);
         box-shadow: 0px 0 1px 2px rgba(0, 0, 0, 0.25);
@@ -172,6 +280,7 @@ export class AppContainer extends AppContextMixin(LitElement) {
       }
 
       #communities_list > * {
+        display: block;
         margin-bottom: 0.75rem;
         cursor: pointer;
       }
@@ -449,6 +558,9 @@ export class AppContainer extends AppContextMixin(LitElement) {
   @query('#member_profile_modal', true)
   memberProfileModal
 
+  @query('#member_profile_view', true)
+  memberProfileView
+
   @query('#new_member_did', true)
   newMemberDid
 
@@ -460,6 +572,8 @@ export class AppContainer extends AppContextMixin(LitElement) {
 
   @query('#view_members_modal', true)
   viewMembersModal
+
+
 
   constructor() {
     super();
@@ -496,6 +610,7 @@ export class AppContainer extends AppContextMixin(LitElement) {
   }
 
   async initialize(){
+    this.startSpinner(null, { minimum: 1200, renderImmediate: true });
     this.loadProfile(userDID);
     await this.loadCommunities();
     const firstCommunity = this.context.communities?.[0]?.id;
@@ -503,6 +618,7 @@ export class AppContainer extends AppContextMixin(LitElement) {
     this.initialized = true;
     this.router.navigateTo(lastActivePath ? lastActivePath : firstCommunity ? '/communities/' + firstCommunity : '/settings');
     this.requestUpdate();
+    this.stopSpinner()
   }
 
   firstUpdated() {
@@ -562,6 +678,7 @@ export class AppContainer extends AppContextMixin(LitElement) {
       this.router.navigateTo(`/communities/${this.context.community.id}/channels/${channel.id}`);
       console.log('send', status, this.channels);
       notify.success('Your new channel was created!')
+      this.newChannelName.value = this.newChannelDescription.value = '';
       this.addChannelModal.hide();
     }
     catch(e) {
@@ -583,12 +700,24 @@ export class AppContainer extends AppContextMixin(LitElement) {
     }
   }
 
-  async addMember(){
+  async addMember(did){
     const communityId = this.context?.community?.id;
     if (communityId) {
-      const record = await datastore.addMember(this.newMemberProfileCard.did, communityId);
-      console.log(record);
-      return record;
+      let member = await datastore.getMember(did, communityId) || await datastore.addMember(did, communityId);
+      if (member) {
+        const drl = natives.createDRL(this.context.community.author, {
+          protocol: protocols.sync.uri,
+          path: {
+            communities: this.context.community.id
+          }
+        })
+        let invite = await datastore.sendInvite(did, drl);
+        console.log(invite);
+      }
+      //console.log(invite);
+      // record = await datastore.addMember(this.newMemberProfileCard.did, communityId);
+      // console.log(record);
+      // return record;
     }
   }
 
@@ -603,15 +732,17 @@ export class AppContainer extends AppContextMixin(LitElement) {
 
   }
 
-  viewUserProfile(did){
-    const profileView = this.memberProfileModal.querySelector('profile-view');
-    profileView.did = did || this.context.did;
+  viewUserProfile(did, panel){
+    this.memberProfileView.did = did || this.context.did;
+    this.memberProfileView.panel = panel || 'profile';
     this.memberProfileModal.show()
   }
 
   render() {
     const channels = this.getChannels();
     const communityId = this.context?.community?.id
+    const inviteCount = this.context.invites.size;
+    console.log(inviteCount);
     return html`
 
       <vaadin-app-layout id="app_layout">
@@ -620,9 +751,13 @@ export class AppContainer extends AppContextMixin(LitElement) {
           <sl-icon name="list"></sl-icon>
         </vaadin-drawer-toggle>
 
-        <sl-icon id="logo" name="arrow-repeat" slot="navbar"></sl-icon>
-        <h1 slot="navbar">5ync</h1>
-        <small id="slogan" slot="navbar"></small>
+        <svg id="logo" slot="navbar" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="100" height="100" viewBox="0 0 32 32">
+          <path d="M 6 4 L 6 6 L 4 6 L 4 8 L 2 8 L 2 10 L 6 10 L 6 26 L 17 26 L 17 24 L 8 24 L 8 10 L 12 10 L 12 8 L 10 8 L 10 6 L 8 6 L 8 4 L 6 4 z M 15 6 L 15 8 L 24 8 L 24 22 L 20 22 L 20 24 L 22 24 L 22 26 L 24 26 L 24 28 L 26 28 L 26 26 L 28 26 L 28 24 L 30 24 L 30 22 L 26 22 L 26 6 L 15 6 z"></path>
+        </svg>
+
+        <h1 class="text-logo" slot="navbar">5ync</h1>
+
+        <sl-icon-button id="notification_button" variant="text" name="bell" slot="navbar" data-count="${inviteCount || nothing}" @click="${ e => this.viewUserProfile(null, 'notifications') }"></sl-icon-button>
 
         <sl-avatar id="user_avatar" image="${this.context?.avatar?.cache?.uri}" label="User avatar" slot="navbar" @click="${ e => this.viewUserProfile() }"></sl-avatar>
 
@@ -633,7 +768,13 @@ export class AppContainer extends AppContextMixin(LitElement) {
               const channel = channels[id];
               const communitySegment = `/communities/${id}`;
               const href = communitySegment + (channel ? `/channels/${channel}` : '');
-              return html`<a tabindex="-1" href="${href}" ?active="${location.pathname.match(communitySegment)}"><sl-avatar pressable label="${community.cache.json.name}"></sl-avatar></a>`
+              return html`
+                <sl-tooltip content="${community.cache.json.name}" placement="right">
+                  <a tabindex="-1" href="${href}" ?active="${location.pathname.match(communitySegment)}">
+                  <sl-avatar pressable label="${community.cache.json.name}"></sl-avatar>
+                  </a>
+                </sl-tooltip>
+                `
             })
           }
         </menu>
@@ -688,13 +829,23 @@ export class AppContainer extends AppContextMixin(LitElement) {
 
         <main id="pages">
           <page-home id="home" scroll></page-home>
-          <page-community id="communities" scroll community="${communityId}" channel="${this.context.channel}"></page-community>
+          <page-community id="communities" scroll community="${communityId || nothing}" channel="${this.context.channel || nothing}"></page-community>
           <page-drafts id="drafts" scroll></page-drafts>
           <page-follows id="follows" scroll></page-follows>
           <page-settings id="settings" scroll></page-settings>
         </main>
 
       </vaadin-app-layout>
+
+
+      <sl-dialog id="first_run_modal" class="modal-page" no-header ?open="${!this.context?.communities?.size}" @sl-request-close="${e => e.detail.source === 'overlay' && e.preventDefault()}">
+        <section>
+          <h1 class="text-logo">5ync</h1>
+        </section>
+        <section>
+          <add-community></add-community>
+        </section>
+      </sl-dialog>
 
       <sl-popup id="profile_card_popup" placement="bottom-start" flip
         @pointerenter="${ e => e.currentTarget.active = true }"
@@ -703,23 +854,7 @@ export class AppContainer extends AppContextMixin(LitElement) {
       </sl-popup>
 
       <sl-dialog id="add_community_modal" label="Add a Community">
-        <sl-tab-group>
-          <sl-tab slot="nav" panel="new-community">New Community</sl-tab>
-          <sl-tab slot="nav" panel="existing-community">Existing Community</sl-tab>
-
-          <sl-tab-panel name="new-community">
-            <sl-input id="new_community_name" label="Community Name" placeholder="Enter name"></sl-input>
-            <sl-textarea id="new_community_description" label="Description" placeholder="Enter a brief description"></sl-textarea>
-            <sl-button variant="primary" @click="${ e => this.createCommunity() }">Create</sl-button>
-          </sl-tab-panel>
-
-          <sl-tab-panel name="existing-community">
-            <sl-input placeholder="Enter community ID" id="community-id-input"></sl-input>
-            <div id="lookup-result">
-              <!-- Placeholder for lookup result or spinner -->
-            </div>
-          </sl-tab-panel>
-        </sl-tab-group>
+        <add-community></add-community>
       </sl-dialog>
 
       <sl-dialog id="add_channel_modal" label="Add a Channel">
@@ -753,7 +888,7 @@ export class AppContainer extends AppContextMixin(LitElement) {
             this.newMemberSubmit.disabled = true;
           }}"
         ></profile-card>
-        <sl-button id="new_member_submit" variant="primary" @click="${ e => this.addMember() }" slot="footer" disabled>Add Member</sl-button>
+        <sl-button id="new_member_submit" variant="primary" @click="${ e => this.addMember(this.newMemberProfileCard.did) }" slot="footer" disabled>Add Member</sl-button>
       </sl-dialog>
 
       <sl-drawer id="view_members_modal" label="Community Members" placement="start">
@@ -761,11 +896,11 @@ export class AppContainer extends AppContextMixin(LitElement) {
       </sl-drawer>
 
       <sl-dialog id="community_profile_modal" label="Community Profile" class="modal-page" @sl-request-close="${e => e.detail.source === 'overlay' && e.preventDefault()}">
-
+        <profile-view></profile-view>
       </sl-dialog>
 
       <sl-dialog id="member_profile_modal" label="Member Profile" class="modal-page" @sl-request-close="${e => e.detail.source === 'overlay' && e.preventDefault()}">
-        <profile-view></profile-view>
+        <profile-view id="member_profile_view"></profile-view>
       </sl-dialog>
     `;
   }

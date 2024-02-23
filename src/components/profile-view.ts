@@ -28,6 +28,10 @@ export class ProfileView extends LitElement {
         cursor: default;
       }
 
+      sl-tab-panel {
+        margin-top: 2em;
+      }
+
       form {
         max-width: 600px;
         margin: 0 auto;
@@ -91,8 +95,14 @@ export class ProfileView extends LitElement {
     `
   ]
 
-  @property({ type: String })
+  @property({ type: String, reflect: true })
   did;
+
+  @property({ type: String, reflect: true })
+  panel = 'profile';
+
+  @query('#tabs', true)
+  tabs;
 
   @query('#profile_form', true)
   profileForm;
@@ -103,11 +113,13 @@ export class ProfileView extends LitElement {
   static properties = {
     socialData: {
       type: Object
+    },
+    avatarDataUri: {
+      type: String
     }
   }
 
   socialRecord: any;
-  avatarDataUri: any;
   avatarRecord: any;
 
   constructor() {
@@ -119,19 +131,20 @@ export class ProfileView extends LitElement {
     }
   }
 
-  set did (did){
-    this._did = did;
-    this.loadProfile(did);
-  }
-
-  get did(){
-    return this._did;
+  willUpdate(props) {
+    if (props.has('panel')) {
+      this?.tabs?.show?.(this.panel || 'profile');
+    }
+    if (props.has('did')) {
+      this.loadProfile(this.did);
+    }
   }
 
   async loadProfile(did){
     this.profileForm.toggleAttribute('loading', true);
     const profileDid = await this.context.profileReady;
-    if (did === profileDid) {
+    this.isOwner = did === profileDid;
+    if (this.isOwner) {
       this.socialRecord = this.context.social;
       this.avatarRecord = this.context.avatar;
     }
@@ -148,21 +161,21 @@ export class ProfileView extends LitElement {
       bio: '',
       apps: {}
     };
-    this.avatarDataUri = this.avatarRecord.cache.uri;
-    this.requestUpdate();
+    this.avatarDataUri = this.avatarRecord?.cache?.uri;
     this.profileForm.removeAttribute('loading');
   }
 
   async handleFileChange(e){
     const profileDid = await this.context.profileReady;
+    this.isOwner = this.did === profileDid;
     const file = this.avatarInput.files[0];
-    if (this.did === profileDid) {
+    if (this.isOwner) {
       this.avatarRecord = await this.context.instance.setAvatar(file);
       this.avatarDataUri = this.avatarRecord.cache.uri;
     }
     else {
       this.avatarRecord = await datastore.setAvatar(file, this.avatarRecord, this.did);
-      this.requestUpdate();
+      this.avatarDataUri = this.avatarRecord.cache.uri;
     }
   }
 
@@ -194,25 +207,46 @@ export class ProfileView extends LitElement {
 
   render(){
     return html`
-      <form id="profile_form" loading @sl-change="${e => this.saveSocialInfo(e)}" @submit="${e => e.preventDefault()}">
+      <sl-tab-group id="tabs" @sl-tab-show="${e => this.panel = e.detail.name}">
+        <sl-tab slot="nav" panel="profile" ?active="${this.panel === 'profile' || nothing}">Profile</sl-tab>
+        ${ !this.isOwner ? nothing : html`
+          <sl-tab slot="nav" panel="notifications" ?active="${this.panel === 'notifications' || nothing}">Notifications</sl-tab>
+        `}
 
-        <div id="profile_image_container" @click="${e => e.currentTarget.lastElementChild.click()}">
-          <w5-img id="profile_image" src="${ifDefined(this.avatarDataUri)}" fallback="person"></w5-img>
-          <small>(click to change image)</small>
-          <input id="profile_image_input" type="file" accept="image/png, image/jpeg, image/gif" style="display: none"  @change="${this.handleFileChange}" />
-        </div>
+        <sl-tab-panel name="profile" ?active="${this.panel === 'profile' || nothing}">
+          <form id="profile_form" loading @sl-change="${e => this.saveSocialInfo(e)}" @submit="${e => e.preventDefault()}">
 
-        <sl-input name="displayName" value="${this.socialData.displayName}" label="Display Name" help-text="A public name visible to everyone"></sl-input>
-        <sl-textarea name="bio" value="${this.socialData.bio}" label="Bio" help-text="Tell people a little about yourself" maxlength="280" rows="4" resize="none"></sl-textarea>
+            <div id="profile_image_container" @click="${e => e.currentTarget.lastElementChild.click()}">
+              <w5-img id="profile_image" src="${ifDefined(this.avatarDataUri)}" fallback="person"></w5-img>
+              <small>(click to change image)</small>
+              <input id="profile_image_input" type="file" accept="image/png, image/jpeg, image/gif" style="display: none"  @change="${this.handleFileChange}" />
+            </div>
 
-        <h3>Social Accounts</h3>
-        <sl-input label="X (Twitter)" name="apps.x" value="${this.socialData.apps.x}" class="label-on-left"></sl-input>
-        <sl-input label="Instagram" name="apps.instagram" value="${this.socialData.apps.instagram}" class="label-on-left"></sl-input>
-        <sl-input label="Facebook" name="apps.facebook" value="${this.socialData.apps.facebook}" class="label-on-left"></sl-input>
-        <sl-input label="GitHub" name="apps.github" value="${this.socialData.apps.github}" class="label-on-left"></sl-input>
-        <sl-input label="Tidal" name="apps.tidal" value="${this.socialData.apps.tidal}" class="label-on-left"></sl-input>
-        <sl-input label="LinkedIn" name="apps.linkedin" value="${this.socialData.apps.linkedin}" class="label-on-left"></sl-input>
-      </form>
+            <sl-input name="displayName" value="${this.socialData.displayName}" label="Display Name" help-text="A public name visible to everyone"></sl-input>
+            <sl-textarea name="bio" value="${this.socialData.bio}" label="Bio" help-text="Tell people a little about yourself" maxlength="280" rows="4" resize="none"></sl-textarea>
+
+            <h3>Social Accounts</h3>
+            <sl-input label="X (Twitter)" name="apps.x" value="${this.socialData.apps.x}" class="label-on-left"></sl-input>
+            <sl-input label="Instagram" name="apps.instagram" value="${this.socialData.apps.instagram}" class="label-on-left"></sl-input>
+            <sl-input label="Facebook" name="apps.facebook" value="${this.socialData.apps.facebook}" class="label-on-left"></sl-input>
+            <sl-input label="GitHub" name="apps.github" value="${this.socialData.apps.github}" class="label-on-left"></sl-input>
+            <sl-input label="Tidal" name="apps.tidal" value="${this.socialData.apps.tidal}" class="label-on-left"></sl-input>
+            <sl-input label="LinkedIn" name="apps.linkedin" value="${this.socialData.apps.linkedin}" class="label-on-left"></sl-input>
+          </form>
+        </sl-tab-panel>
+        ${ !this.isOwner ? nothing : html`
+          <sl-tab-panel name="notifications" ?active="${this.panel === 'notifications' || nothing}">
+            ${
+              Array.from(this.context.invites).map(([id, invite]) => {
+                console.log(invite);
+                return html`
+                  <div>${ invite.cache.json.link }</div>
+                `
+              })
+            }
+          </sl-tab-panel>
+        `}
+
     `
   }
 

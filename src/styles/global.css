@@ -4,7 +4,9 @@
   Check here https://developer.mozilla.org/en-US/docs/Web/CSS/Using_CSS_custom_properties for more info on using CSS variables.
 */
 :root {
-  --font-family: 'Roboto Slab', serif;
+  --font-family: 'Lato', serif;
+  --logo-font: 'Micro 5', sans-serif;
+  --sl-font-sans: var(--font-family);
   --header-bk: rgb(106 0 116);
   --link-color: rgb(242, 99, 255) !important;
   --header-text: #000;

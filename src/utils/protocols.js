@@ -37,6 +37,14 @@ const memberActions = [{
 },
 {
   role: 'community/member',
+  can: 'query'
+},
+{
+  role: 'community/member',
+  can: 'read'
+},
+{
+  role: 'community/member',
   can: 'delete'
 }]
 
@@ -78,6 +86,7 @@ const channelTemplate = {
   }
 };
 const allMemberChannel = JSON.parse(JSON.stringify(channelTemplate));
+      allMemberChannel.$actions.concat(memberActions);
       allMemberChannel.message.$actions.concat(memberActions)
       allMemberChannel.message.reaction.$actions.concat(memberActions)
 
@@ -126,7 +135,7 @@ const appDefinition = {
     community: {
       dataFormats: ['application/json']
     },
-    overview: {
+    details: {
       dataFormats: ['application/json']
     },
     channel: {
@@ -136,6 +145,12 @@ const appDefinition = {
       dataFormats: ['application/json']
     },
     image: {
+      dataFormats: ['image/gif', 'image/png', 'image/jpeg']
+    },
+    logo: {
+      dataFormats: ['image/gif', 'image/png', 'image/jpeg']
+    },
+    hero: {
       dataFormats: ['image/gif', 'image/png', 'image/jpeg']
     },
     media: {
@@ -176,10 +191,13 @@ const appDefinition = {
         $contextRole: true,
         $actions: adminOrCreatorActions
       },
-      overview: {
+      details: {
         $actions: adminOrCreatorActions
       },
-      image: {
+      logo: {
+        $actions: adminOrCreatorActions
+      },
+      hero: {
         $actions: adminOrCreatorActions
       },
       channel: allMemberChannel,

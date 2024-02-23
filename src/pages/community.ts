@@ -1,12 +1,10 @@
-import { LitElement, html, css, unsafeCSS } from 'lit';
+import { LitElement, html, css, nothing, unsafeCSS } from 'lit';
 import { consume } from '@lit/context';
-import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { customElement, query } from 'lit/decorators.js';
 
 import { AppContext } from '../utils/context.js';
 
 import PageStyles from  '../styles/page.css';
-import * as markdown from  '../utils/markdown.js';
 
 import '../components/community-channel';
 
@@ -18,7 +16,6 @@ export class PageCommunities extends LitElement {
 
   static styles = [
     unsafeCSS(PageStyles),
-    markdown.styles,
     css`
       :host {
         display: flex;
@@ -52,7 +49,10 @@ export class PageCommunities extends LitElement {
 
   render() {
     return html`
-      <community-channel id="channel" community="${this.community}" channel="${this.channel}"></community-channel>
+      <community-channel id="channel" community="${this.community || nothing}" channel="${this.channel || nothing}"></community-channel>
+      ${ this.context?.channels?.size ? nothing : html`<div default-content="cover">
+
+      </div>`}
     `;
   }
 }

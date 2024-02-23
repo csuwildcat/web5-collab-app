@@ -115,11 +115,11 @@ class Datastore {
     if (options.recipient) params.message.recipient = options.recipient;
     if (options.role) params.message.protocolRole = path;
     const response = await this.dwn.records.create(params);
-    console.log(response.status);
+    console.log('status', response.status);
     await response.record.send(this.did).then(e => {
-      console.log(e)
+      console.log('sent')
     }).catch(e => {
-      console.log(e)
+      console.log('send error', e)
     });
     console.log(response.record);
     return response;
@@ -176,24 +176,6 @@ class Datastore {
     return record;
   }
 
-  async readAvatar(options = {}){
-    await this.ready;
-    const did = options.from = options.from || this.did;
-    if (did !== this.did) {
-      const cached = Datastore.getCache(did, 'avatar');
-      if (cached) return cached;
-    }
-    const record = await this.getAvatar(options);
-    console.log(record);
-    const blob = await record.data.blob();
-    record.cache = {
-      blob: blob,
-      uri: URL.createObjectURL(blob)
-    }
-    if (did !== this.did) Datastore.setCache(did, 'avatar', record);
-    return record;
-  }
-
   async readPost(did, id){
     await this.ready;
     const { record, status } = await this.dwn.records.read({
@@ -237,6 +219,24 @@ class Datastore {
     return record;
   }
 
+  async readAvatar(options = {}){
+    await this.ready;
+    const did = options.from = options.from || this.did;
+    if (did !== this.did) {
+      const cached = Datastore.getCache(did, 'avatar');
+      if (cached) return cached;
+    }
+    const record = await this.getAvatar(options);
+    console.log(record);
+    const blob = await record.data.blob();
+    record.cache = {
+      blob: blob,
+      uri: URL.createObjectURL(blob)
+    }
+    if (did !== this.did) Datastore.setCache(did, 'avatar', record);
+    return record;
+  }
+
   async setAvatar(file, _record, from = this.did){
     let record = _record || await datastore.getAvatar({ from });
     let blob = file ? new Blob([file], { type: file.type }) : undefined;
@@ -273,6 +273,23 @@ class Datastore {
     return record;
   }
 
+  async getCommunity (id, options = {}) {
+    await this.ready;
+    const { record, status } = await this.dwn.records.read({
+      from: this.did || options.from,
+      message: {
+        filter: {
+          recordId: id
+        }
+      }
+    });
+    if (status.code !== 200) return false;
+    record.cache = {
+      json: await record.data.json()
+    }
+    return record;
+  }
+
   async getCommunities (options = {}) {
     const records = await this.queryProtocolRecords('sync', 'community', options)
     await Promise.all(records.map(async record => {
@@ -290,7 +307,7 @@ class Datastore {
       dataFormat: 'application/json'
     }, options));
     record.cache = {
-      json: await record.data.json()
+      json: await record.data?.json()?.catch(e => {})?.then(obj => obj)
     }
     return record;
   }
@@ -299,7 +316,7 @@ class Datastore {
     const records = await this.queryProtocolRecords('sync', 'community/channel', Object.assign({ parentId: communityId }, options))
     await Promise.all(records.map(async record => {
       record.cache = {
-        json: await record.data.json()
+        json: await record.data?.json()?.catch(e => {})?.then(obj => obj)
       }
     }))
     return records;
@@ -309,7 +326,7 @@ class Datastore {
     const records = await this.queryProtocolRecords('sync', 'community/channel/message', Object.assign({ parentId: channelId }, options))
     await Promise.all(records.map(async record => {
       record.cache = {
-        json: await record.data.json()
+        json: await record.data?.json()?.catch(e => {})?.then(obj => obj)
       }
     }))
     return records;
@@ -322,7 +339,7 @@ class Datastore {
       dataFormat: 'application/json'
     }, options));
     record.cache = {
-      json: await record.data.json()
+      json: await record.data?.json()?.catch(e => {})?.then(obj => obj)
     }
     return record;
   }
@@ -334,7 +351,7 @@ class Datastore {
       dataFormat: 'application/json'
     }, options));
     record.cache = {
-      json: await record.data.json()
+      json: await record.data?.json()?.catch(e => {})?.then(obj => obj)
     }
     return record;
   }
@@ -343,7 +360,7 @@ class Datastore {
     const records = await this.queryProtocolRecords('sync', 'community/convo', Object.assign({ parentId: communityId }, options))
     await Promise.all(records.map(async record => {
       record.cache = {
-        json: await record.data.json()
+        json: await record.data?.json()?.catch(e => {})?.then(obj => obj)
       }
     }))
     return records;
@@ -358,16 +375,72 @@ class Datastore {
       dataFormat: 'application/json'
     }, options));
     record.cache = {
-      json: await record.data.json()
+      json: await record.data?.json()?.catch(e => {})?.then(obj => obj)
     }
+    console.log(status);
+    return record;
+  }
+
+  async getMember (recipient, parentId, protocolPath, options = {}) {
+    const record = await this.queryProtocolRecords('sync', protocolPath || 'community/member', Object.assign({ recipient, parentId, latestRecord: true }, options))
     return record;
   }
 
   async getMembers (parentId, protocolPath, options = {}) {
-    const records = await this.queryProtocolRecords('sync', protocolPath || 'community/member', Object.assign({ parentId: parentId }, options))
+    const records = await this.queryProtocolRecords('sync', protocolPath || 'community/member', Object.assign({ parentId }, options))
     await Promise.all(records.map(async record => {
       record.cache = {
-        json: await record.data.json().catch(e => {}).then(obj => obj)
+        json: await record.data?.json()?.catch(e => {})?.then(obj => obj)
+      }
+    }))
+    return records;
+  }
+
+  async sendInvite(recipient, link, options = {}) {
+    if (!options.skipCheck) {
+      let record = await this.getActiveInvite({ recipient });
+      if (record) {
+        record.cache = {
+          json: await record.data?.json()?.catch(e => {})?.then(obj => obj)
+        }
+        return record;
+      }
+    }
+    const { record, status: recordStatus } = await this.createProtocolRecord('sync', 'invite', Object.assign({
+      recipient,
+      store: false,
+      dataFormat: 'application/json',
+      data: { link }
+    }, options));
+    record.cache = {
+      json: await record.data?.json()?.catch(e => {})?.then(obj => obj)
+    }
+    const { status: sendStatus } = await record.send(recipient);
+    console.log(sendStatus);
+    if (sendStatus.code === 202) {
+      console.log(record);
+      const result = await record.store();
+      console.log(result);
+      return record;
+    }
+  }
+
+  async getActiveInvite (options = {}) {
+    const records = await this.queryProtocolRecords('sync', 'invite', options)
+    const record = records.find(record => !record.isDeleted)
+    if (record) {
+      record.cache = {
+        json: await record.data?.json()?.catch(e => {})?.then(obj => obj)
+      }
+    }
+    return record;
+  }
+
+  async getInvites (options = {}) {
+    const records = await this.queryProtocolRecords('sync', 'invite', options)
+    await Promise.all(records.map(async record => {
+      record.cache = {
+        json: await record.data?.json()?.catch(e => {})?.then(obj => obj)
       }
     }))
     return records;

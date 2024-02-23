@@ -10,6 +10,7 @@ const initialState = {
   communities: new Map(),
   channels: new Map(),
   convos: new Map(),
+  invites: new Map(),
 };
 
 export const AppContext = createContext(initialState);
@@ -32,6 +33,7 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
   }
 
   loadProfile(did){
+    clearInterval(this.context.inviteChron);
     return this.context.profileReady = new Promise(async resolve => {
       if (did === this.context.did) return;
       const records = await Promise.all([
@@ -40,8 +42,10 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
           displayName: '',
           bio: '',
           apps: {}
-        }, from: did })
+        }, from: did }),
+        this.loadInvites(false)
       ])
+      this.context.inviteChron = setInterval(() => this.loadInvites(), 1000 * 30)
       this.updateState({
         did,
         avatar: records[0],
@@ -53,7 +57,6 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
 
   async setAvatar(file){
     const record = await datastore.setAvatar(file, this.context.avatar, this.context.did);
-    record.send(this.context.did);
     this.updateState({ avatar: record });
     return record;
   }
@@ -64,6 +67,29 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
     record.send(this.context.did);
     this.updateState({ social: record });
     return record;
+  }
+
+  async loadCommunities(){
+    const communities = await datastore.getCommunities();
+    this.updateState({
+      communities: new Map(communities.map(community => [community.id, community]))
+    })
+  }
+
+  async loadChannels(){
+    const channels = await datastore.getChannels(this.context.community.id);
+    this.context.channels = new Map(channels.map(channel => [channel.id, channel]));
+  }
+
+  async loadConvos(){
+    const convos = await datastore.getConvos(this.context.community.id);
+    this.context.convos = new Map(convos.map(convo => [convo.id, convo]));
+  }
+
+  async loadInvites(update) {
+    let invites = await datastore.getInvites();
+    this.context.invites = new Map(invites.map(invite => [invite.id, invite]));
+    if (update !== false) this.updateState({ invites: this.context.invites });
   }
 
   async setCommunity(communityId, channelId){
@@ -89,11 +115,14 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
     else this.requestUpdate();
   }
 
-  async loadCommunities(){
-    const communities = await datastore.getCommunities();
-    this.updateState({
-      communities: new Map(communities.map(community => [community.id, community]))
-    })
+  getChannel(community){
+    let activeChannels = localStorage.activeChannels;
+    return (activeChannels ? JSON.parse(activeChannels) : {})[community];
+  }
+
+  getChannels(){
+    let activeChannels = localStorage.activeChannels;
+    return activeChannels ? JSON.parse(activeChannels) : {};
   }
 
   async setChannel(channelId, isActive){
@@ -109,30 +138,11 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
     }
   }
 
-  getChannel(community){
-    let activeChannels = localStorage.activeChannels;
-    return (activeChannels ? JSON.parse(activeChannels) : {})[community];
-  }
-
-  getChannels(){
-    let activeChannels = localStorage.activeChannels;
-    return activeChannels ? JSON.parse(activeChannels) : {};
-  }
-
-  async loadChannels(){
-    const channels = await datastore.getChannels(this.context.community.id);
-    this.context.channels = new Map(channels.map(channel => [channel.id, channel]));
-  }
-
-  async loadConvos(){
-    const convos = await datastore.getConvos(this.context.community.id);
-    this.context.convos = new Map(convos.map(convo => [convo.id, convo]));
-  }
-
   addCommunity(community) {
     const updatedMap = new Map(this.context.communities);
     updatedMap.set(community.id, community);
-    this.updateState({ communities: updatedMap });
+    this.updateState({ communities: updatedMap }, false);
+    this.setCommunity(community.id);
   }
 
   addChannel(channel) {
@@ -148,8 +158,8 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
     this.updateState({ convos: updatedMap });
   }
 
-  updateState(partialState) {
+  updateState(partialState, render) {
     this.context = { ...this.context, ...partialState };
-    this.requestUpdate();
+    if (render !== false) this.requestUpdate();
   }
 }

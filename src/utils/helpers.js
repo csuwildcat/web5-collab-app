@@ -5,6 +5,62 @@ const natives = {
     const lastKey = keys.pop();
     const lastObj = keys.reduce((o, key) => o[key] = o[key] || {}, obj);
     lastObj[lastKey] = value;
+  },
+  unslash(str) {
+    return str.endsWith('/') ? str.slice(0, -1) : str;
+  },
+  url: {
+    encode(str){
+      return btoa(encodeURIComponent(str)
+        .replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode('0x' + p1)))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+    },
+    decode(str){
+      return decodeURIComponent(atob(str
+        .replace(/-/g, '+')
+        .replace(/_/g, '/'))
+        .split('')
+        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join(''));
+    }
+  },
+  createDRL(prefix, { path = {}, params = {}, hash = '' }){
+    let url = prefix + '/dwn';
+    if (path.protocol) {
+      url += '/protocols/' + natives.url.encode(natives.unslash(segments.protocol));
+      delete path.protocol;
+    }
+    for (let z in path) {
+      url += `/${z}/${path[z]}`
+    }
+    const searchParams = new URLSearchParams();
+    for (let key in params) {
+      const value = params[key];
+      if (Array.isArray(value)) {
+        value.forEach(v => searchParams.append(key, v));
+      }
+      else searchParams.append(key, value);
+    }
+    return url + searchParams.toString() + hash;
+  },
+  parseDRL(url, pathPattern){
+    const match = new URLPattern({
+      pathname: pathPattern,
+      search: '*',
+      protocol: '{did,dweb}:'
+    }).exec(url)
+
+    if (!match) return null;
+
+    const params = new URLSearchParams(match.search.input);
+    return {
+      protocol: match.protocol,
+      path: match.pathname.groups,
+      params: Object.fromEntries(params),
+      hash: url.split('#')?.[1] || ''
+    }
   }
 }
 

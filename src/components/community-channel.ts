@@ -4,6 +4,7 @@ import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { customElement, query, property } from 'lit/decorators.js';
 
 import { AppContext } from '../utils/context.js';
+import { SpinnerMixin, SpinnerStyles } from '../utils/spinner';
 
 import '@vaadin/message-input/theme/lumo/vaadin-message-input.js';
 import '@vaadin/message-list/theme/lumo/vaadin-message.js';
@@ -29,13 +30,14 @@ import date from  '../utils/date.js';
 const transitionDuration = 200;
 
 @customElement('community-channel')
-export class CommunityChannel extends LitElement {
+export class CommunityChannel extends SpinnerMixin(LitElement) {
 
   @consume({context: AppContext, subscribe: true})
   context;
 
   static styles = [
     unsafeCSS(PageStyles),
+    SpinnerStyles,
     css`
 
       :host {
@@ -73,7 +75,7 @@ export class CommunityChannel extends LitElement {
       #message_list {
         position: relative;
         flex: 1;
-        padding: 0 0.25em;
+        padding: 1em 0.25em;
       }
 
       #message_list * {
@@ -101,31 +103,13 @@ export class CommunityChannel extends LitElement {
         font-size: 85%;
       }
 
-      /* vaadin-message::part(message) {
-        font-size: 90%;
-      } */
-
       #message_input {
         /* max-width: 900px; */
       }
 
-      #spinner {
-        position: absolute;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 3rem;
+      .spinner-mixin {
         background: var(--body-bk);
-        inset: 0;
-        opacity: 0;
-        transition: opacity ${transitionDuration}ms ease;
-        z-index: 1000;
-        pointer-events: none;
-      }
-
-      #spinner[show] {
-        opacity: 1;
-        pointer-events: all;
+        transition-duration: ${transitionDuration}ms;
       }
 
       @media(max-width: 500px) {
@@ -164,13 +148,10 @@ export class CommunityChannel extends LitElement {
       this.messages = [];
       return;
     }
-    this?.spinner?.setAttribute?.('show', '')
-    this.messages = (await Promise.all([
-      await datastore.getChannelMessages(channelId),
-      DOM.delay(transitionDuration)
-    ]))[0]
+    this.startSpinner('#messages_wrapper', { minimum: transitionDuration });
+    this.messages = await datastore.getChannelMessages(channelId);
     if (this.messageList) this.messageList.items = [...this.messages];
-    this?.spinner?.removeAttribute?.('show');
+    this.stopSpinner('#messages_wrapper');
   }
 
   renderMessage(root, list, { item: record, index }) {
@@ -204,7 +185,6 @@ export class CommunityChannel extends LitElement {
       <div id="messages_wrapper">
         <vaadin-virtual-list id="message_list" .items="${this.messages}"><div anchor></div></vaadin-virtual-list>
         <vaadin-message-input id="message_input" @submit="${this.submitMessage}"></vaadin-message-input>
-        <div id="spinner"><sl-spinner></sl-spinner></div>
       </div>
     `;
   }

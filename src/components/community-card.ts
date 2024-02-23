@@ -3,13 +3,13 @@ import { customElement, query } from 'lit/decorators.js';
 import { ifDefined } from 'lit/directives/if-defined.js';
 
 import { DOM } from '../utils/helpers.js';
-import { SpinnerMixin, SpinnerStyles } from '../utils/spinner';
+import { SpinnerMixin, SpinnerStyles } from '../utils/spinner.js';
 import './global.js'
 
-import '../components/w5-img'
+import './w5-img.js'
 
-@customElement('profile-card')
-export class ProfileCard extends SpinnerMixin(LitElement) {
+@customElement('community-card')
+export class CommunityCard extends SpinnerMixin(LitElement) {
   static styles = [
     SpinnerStyles,
     css`
@@ -123,7 +123,11 @@ export class ProfileCard extends SpinnerMixin(LitElement) {
       type: Boolean,
       reflect: true
     },
-    did: {
+    host: {
+      type: String,
+      reflect: true
+    },
+    community: {
       type: String,
       reflect: true
     },
@@ -151,60 +155,45 @@ export class ProfileCard extends SpinnerMixin(LitElement) {
     },
   };
 
-  static instances = new Set();
-
-  connectedCallback(){
-    super.connectedCallback();
-    ProfileCard.instances.add(this);
-  }
-
-  disconnectedCallback(){
-    super.disconnectedCallback();
-    ProfileCard.instances.delete(this)
-  }
-
-  set did(did){
-    if (this._did === did) return;
-    this._did = did;
-    this.error = false;
-    this.loading = true;
-    this.startSpinner();
-    DOM.fireEvent(this, 'profile-card-loading', {
-      detail: {
-        input: did
-      }
-    });
-    Promise.all([
-      datastore.readAvatar({ from: did }).then(async record => {
-        this.avatarDataUri = record.cache.uri || undefined;
-      }),
-      datastore.getSocial({ from: did }).then(async record => {
-        this.socialData = await record.cache.json || {};
-      })
-    ]).then(() => {
-      if (this._did === did) this.requestUpdate();
-      this.loading = false;
-      this.stopSpinner();
-      DOM.fireEvent(this, 'profile-card-loaded', {
+  willUpdate(props) {
+    if (props.has('community') && props.has('host')) {
+      const did = this.host;
+      this.error = false;
+      this.loading = true;
+      this.startSpinner();
+      DOM.fireEvent(this, 'community-card-loading', {
         detail: {
           input: did
         }
+      });
+      Promise.all([
+        datastore.readAvatar({ from: did }).then(async record => {
+          this.avatarDataUri = record.cache.uri || undefined;
+        }),
+        datastore.getSocial({ from: did }).then(async record => {
+          this.socialData = await record.cache.json || {};
+        })
+      ]).then(() => {
+        if (this.host === did) this.requestUpdate();
+        this.loading = false;
+        this.stopSpinner();
+        DOM.fireEvent(this, 'community-card-loaded', {
+          detail: {
+            input: did
+          }
+        })
+      }).catch(e => {
+        console.log(e);
+        this.loading = false;
+        this.stopSpinner();
+        this.error = true;
+        DOM.fireEvent(this, 'community-card-error', {
+          detail: {
+            input: did
+          }
+        })
       })
-    }).catch(e => {
-      console.log(e);
-      this.loading = false;
-      this.stopSpinner();
-      this.error = true;
-      DOM.fireEvent(this, 'profile-card-error', {
-        detail: {
-          input: did
-        }
-      })
-    })
-  }
-
-  get did(){
-    return this._did;
+    }
   }
 
   render() {

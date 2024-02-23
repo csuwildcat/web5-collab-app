@@ -90,10 +90,6 @@ sl-input, sl-textarea {
   flex: 1;
 }
 
-[default-content] {
-  display: none;
-}
-
 [default-content]:only-child {
   display: flex;
   flex-direction: column;
@@ -101,6 +97,13 @@ sl-input, sl-textarea {
 
 *:has(>[default-content]:only-child) {
   display: flex !important;
+}
+
+[default-content~="cover"] {
+  position: absolute;
+  inset: 0;
+  z-index: 1000;
+  background: #000;
 }
 
 [default-content~="firstrun"] {
@@ -130,6 +133,11 @@ sl-input, sl-textarea {
 
 [default-content~="clickable"]:hover {
   background-color: rgba(255 255 255 / 0.075)
+}
+
+.text-logo {
+  font-weight: normal;
+  font-family: var(--logo-font);
 }
 
 .modal-page::part(panel) {
@@ -196,7 +204,7 @@ sl-input, sl-textarea {
 }
 
 .modal-page > * {
-  max-width: 800px;
+  max-width: 810px;
   margin: 0 auto;
 }
 

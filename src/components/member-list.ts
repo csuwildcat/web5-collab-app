@@ -1,51 +1,46 @@
 import { LitElement, html, css, render, nothing, unsafeCSS } from 'lit';
+import { consume } from '@lit/context';
 import { customElement, query, property } from 'lit/decorators.js';
 import { ifDefined } from 'lit/directives/if-defined.js';
 
-import PageStyles from  '../styles/page.css';
-import { DOM, notify } from '../utils/helpers';
-import date from  '../utils/date.js';
+import { AppContext } from '../utils/context.js';
 
-const transitionDuration = 200;
+import { DOM, notify } from '../utils/helpers';
+import date from  '../utils/date';
+import { SpinnerMixin, SpinnerStyles } from '../utils/spinner';
+
+import { ProfileCard } from './components/profile-card'
+
+import PageStyles from  '../styles/page.css';
+const transitionDuration = 300;
 
 @customElement('member-list')
-export class MemberList extends LitElement {
+export class MemberList extends SpinnerMixin(LitElement) {
+
+  @consume({context: AppContext, subscribe: true})
+  app;
+
   static styles = [
     unsafeCSS(PageStyles),
+    SpinnerStyles,
     css`
       :host {
         position: relative
       }
 
-      vaadin-message {
-        padding: 0 0 0.5em;
+      profile-card {
+        margin: 0 0 1em;
+        padding: 0.25em;
+        border-radius: 4px;
+        transition: background-color 0.25s ease;
+        cursor: pointer;
       }
 
-      vaadin-message::part(content) {
-        min-width: 0;
-        font-size: 90%;
+      profile-card:hover {
+        background-color: rgba(255,255,255,0.1);
       }
 
-      vaadin-message::part(header) {
-        font-size: 90%;
-      }
-
-      vaadin-message::part(name) {
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-      }
-
-      vaadin-message::part(time) {
-        width: 100%;
-        font-size: 85%;
-      }
-
-      vaadin-avatar {
-        margin: 0.1em 0.75em 0 0;
-      }
-
-      #spinner {
+      /* #spinner {
         position: absolute;
         display: flex;
         align-items: center;
@@ -62,7 +57,7 @@ export class MemberList extends LitElement {
       #spinner[show] {
         opacity: 1;
         pointer-events: all;
-      }
+      } */
 
     `
   ]
@@ -79,15 +74,11 @@ export class MemberList extends LitElement {
   @query('#list', true)
   list;
 
-  @query('#spinner', true)
-  spinner;
-
-  firstUpdated(){
-    this.list.renderer = this.renderMember;
+  firstUpdated(props){
+    this.list.renderer = this.renderMember.bind(this);
   }
 
   willUpdate(props) {
-
     if (props.has('path') || props.has('context')) {
       if (this.path && this.context && props.get('context') !== this.context) {
         this.loadMembers();
@@ -96,28 +87,19 @@ export class MemberList extends LitElement {
   }
 
   async loadMembers(){
-    this?.spinner?.setAttribute?.('show', '')
+    this.startSpinner(null, { minimum: transitionDuration });
     this.members = (await Promise.all([
-      await datastore.getMembers(this.context, this.path),
+      datastore.getMembers(this.context, this.path),
       DOM.delay(transitionDuration)
     ]))[0]
     if (this.list) this.list.items = [...this.members];
-    this?.spinner?.removeAttribute?.('show');
+    this.stopSpinner();
   }
 
   renderMember(root, list, { item: record, index }) {
     const data = record.cache.json;
     render(
-      html`<vaadin-message
-            time="Added on ${date.print(record.dateCreated)}"
-            user-name = "${record.recipient}"
-            @click="${e => DOM.fireEvent(this, 'show-member-modal', {
-              detail: {
-                did: record.recipient
-              }
-            })}"
-          >
-          </vaadin-message>`,
+      html`<profile-card did="${record.recipient}" minimal @click="${e => this.app.instance.viewUserProfile(record.recipient) }"></profile-card>`,
       root
     );
   };
@@ -125,7 +107,6 @@ export class MemberList extends LitElement {
   render() {
     return html`
       <vaadin-virtual-list id="list" .items="${this.members}"></vaadin-virtual-list>
-      <div id="spinner"><sl-spinner></sl-spinner></div>
     `;
   }
 }
