@@ -5,8 +5,8 @@ A starter codebase for generating Decentralized Web Apps based on [pwa-starter](
 ## Installation / Usage
 
 ```bash
-git clone https://github.com/csuwildcat/web5-app
-cd web5-app
+git clone https://github.com/csuwildcat/web5-collab-app
+cd web5-collab-app
 npm install
 npm run dev
 ```
