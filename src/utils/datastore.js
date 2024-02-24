@@ -227,7 +227,6 @@ class Datastore {
       if (cached) return cached;
     }
     const record = await this.getAvatar(options);
-    console.log(record);
     const blob = await record.data.blob();
     record.cache = {
       blob: blob,

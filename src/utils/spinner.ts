@@ -27,11 +27,11 @@ export const SpinnerMixin = (BaseClass) => class extends BaseClass {
 
   constructor() {
     super();
-    let resolve;
+    let firstUpdatedResolve;
     const original = this.firstUpdated;
-    this.#firstUpdatedPromise = new Promise(res => resolve = res);
+    this.#firstUpdatedPromise = new Promise(res => firstUpdatedResolve = res);
     this.firstUpdated = async (props) => {
-      resolve();
+      firstUpdatedResolve();
       await original?.call(this, props);
     };
   }
@@ -71,6 +71,9 @@ export const SpinnerMixin = (BaseClass) => class extends BaseClass {
     const spinner = host.querySelector('.spinner-mixin');
     await spinner?._spinnerMixinDelay;
     spinner?.removeAttribute?.('spinner-show');
+    if (document.visibilityState === 'hidden') {
+      spinner.remove();
+    }
   }
 
 };

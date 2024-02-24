@@ -26,40 +26,41 @@ const natives = {
         .join(''));
     }
   },
-  createDRL(prefix, { path = {}, params = {}, hash = '' }){
-    let url = prefix + '/dwn';
-    if (path.protocol) {
-      url += '/protocols/' + natives.url.encode(natives.unslash(segments.protocol));
-      delete path.protocol;
-    }
-    for (let z in path) {
-      url += `/${z}/${path[z]}`
-    }
-    const searchParams = new URLSearchParams();
-    for (let key in params) {
-      const value = params[key];
-      if (Array.isArray(value)) {
-        value.forEach(v => searchParams.append(key, v));
+  drl: {
+    create(did, { protocol = '', path = {}, params = {}, hash = '' }){
+      let url = `dweb://${did}`;
+      if (protocol) {
+        url += '/protocols/' + natives.url.encode(natives.unslash(protocol));
       }
-      else searchParams.append(key, value);
-    }
-    return url + searchParams.toString() + hash;
-  },
-  parseDRL(url, pathPattern){
-    const match = new URLPattern({
-      pathname: pathPattern,
-      search: '*',
-      protocol: '{did,dweb}:'
-    }).exec(url)
+      for (let z in path) {
+        url += `/${z}/${path[z]}`
+      }
+      const searchParams = new URLSearchParams();
+      for (let key in params) {
+        const value = params[key];
+        if (Array.isArray(value)) {
+          value.forEach(v => searchParams.append(key, v));
+        }
+        else searchParams.append(key, value);
+      }
+      return url + searchParams.toString() + hash;
+    },
+    parse(url, pathPattern = '*'){
+      const match = new URLPattern({
+        protocol: 'dweb',
+        pathname: pathPattern,
+        search: '*'
+      }).exec(url)
 
-    if (!match) return null;
+      if (!match) return null;
 
-    const params = new URLSearchParams(match.search.input);
-    return {
-      protocol: match.protocol,
-      path: match.pathname.groups,
-      params: Object.fromEntries(params),
-      hash: url.split('#')?.[1] || ''
+      const params = new URLSearchParams(match.search.input);
+
+      return {
+        path: match.pathname.groups,
+        params: Object.fromEntries(params),
+        hash: url.split('#')?.[1] || ''
+      }
     }
   }
 }

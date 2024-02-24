@@ -705,7 +705,7 @@ export class AppContainer extends AppContextMixin(SpinnerMixin(LitElement)) {
     if (communityId) {
       let member = await datastore.getMember(did, communityId) || await datastore.addMember(did, communityId);
       if (member) {
-        const drl = natives.createDRL(this.context.community.author, {
+        const drl = natives.drl.create(this.context.community.author, {
           protocol: protocols.sync.uri,
           path: {
             communities: this.context.community.id

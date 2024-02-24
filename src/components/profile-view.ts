@@ -238,7 +238,8 @@ export class ProfileView extends LitElement {
           <sl-tab-panel name="notifications" ?active="${this.panel === 'notifications' || nothing}">
             ${
               Array.from(this.context.invites).map(([id, invite]) => {
-                console.log(invite);
+                console.log(natives.drl.parse(invite.cache.json.link, '/:did/protocols/:protocolId/communities/:communityId'));
+
                 return html`
                   <div>${ invite.cache.json.link }</div>
                 `

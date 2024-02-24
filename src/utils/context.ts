@@ -43,7 +43,7 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
           bio: '',
           apps: {}
         }, from: did }),
-        this.loadInvites(false)
+        this.loadInvites(did, false)
       ])
       this.context.inviteChron = setInterval(() => this.loadInvites(), 1000 * 30)
       this.updateState({
@@ -86,8 +86,9 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
     this.context.convos = new Map(convos.map(convo => [convo.id, convo]));
   }
 
-  async loadInvites(update) {
-    let invites = await datastore.getInvites();
+  async loadInvites(did, update) {
+    did = this.context.did || did;
+    let invites = await datastore.getInvites({ from: did, recipient: did });
     this.context.invites = new Map(invites.map(invite => [invite.id, invite]));
     if (update !== false) this.updateState({ invites: this.context.invites });
   }
