@@ -4,6 +4,17 @@ A starter codebase for generating Decentralized Web Apps based on [pwa-starter](
 
 ## Installation / Usage
 
+First, clone and run [dwn-server](https://github.com/TBD54566975/dwn-server) for local development:
+
+```bash
+git clone https://github.com/TBD54566975/dwn-server.git
+cd dwn-server
+npm install
+npm run server
+```
+
+In a new terminal window, run the following:
+
 ```bash
 git clone https://github.com/csuwildcat/web5-collab-app
 cd web5-collab-app
