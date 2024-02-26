@@ -4,7 +4,7 @@ import { customElement, query, property } from 'lit/decorators.js';
 
 import { AppContext } from '../utils/context.js';
 
-import { DOM, notify } from '../utils/helpers';
+import { DOM, notify } from '../utils/helpers.js';
 import { SpinnerMixin, SpinnerStyles } from '../utils/spinner';
 
 import PageStyles from  '../styles/page.css';

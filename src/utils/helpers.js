@@ -1,4 +1,9 @@
 
+if (!globalThis.URLPattern) {
+  await import('urlpattern-polyfill')
+}
+
+const drlCaptureRegexp = /^(?:dweb:\/\/)?(did:[^\/]+)(?:\/protocols\/([^\/]+)\/?)?/;
 const natives = {
   deepSet(obj, path, value) {
     const keys = path.split('.');
@@ -45,21 +50,23 @@ const natives = {
       }
       return url + searchParams.toString() + hash;
     },
-    parse(url, pathPattern = '*'){
+    parse(_url, pathname = '*'){
+      const url = natives.unslash(_url);
       const match = new URLPattern({
         protocol: 'dweb',
-        pathname: pathPattern,
-        search: '*'
+        pathname
       }).exec(url)
 
       if (!match) return null;
 
-      const params = new URLSearchParams(match.search.input);
-
+      const drlMatches = url.match(drlCaptureRegexp);
+      const protocol = drlMatches?.[2];
       return {
+        did: drlMatches?.[1] || null,
+        protocol: protocol ? natives.url.decode(protocol) : null,
         path: match.pathname.groups,
-        params: Object.fromEntries(params),
-        hash: url.split('#')?.[1] || ''
+        params: Object.fromEntries(new URLSearchParams(match.search.input)),
+        hash: match.hash.input
       }
     }
   }

@@ -1,5 +1,5 @@
 import { css, unsafeCSS } from 'lit';
-import { DOM } from '../utils/helpers';
+import { DOM } from './helpers';
 import '../components/global.js'
 
 export const SpinnerStyles = css`

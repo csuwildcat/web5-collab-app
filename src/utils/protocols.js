@@ -28,8 +28,27 @@ const adminOrCreatorActions = [
   {
     role: 'community/admin',
     can: 'delete'
+  },
+  {
+    role: 'community/admin',
+    can: 'query'
+  },
+  {
+    role: 'community/admin',
+    can: 'read'
   }
 ];
+
+const adminOrCreatorAndMemberQueryRead = [
+  {
+    role: 'community/member',
+    can: 'query'
+  },
+  {
+    role: 'community/member',
+    can: 'read'
+  }
+].concat(adminOrCreatorActions)
 
 const memberActions = [{
   role: 'community/member',
@@ -51,32 +70,21 @@ const memberActions = [{
 const channelTemplate = {
   $actions: adminOrCreatorActions,
   message: {
-    $actions: [
-      {
-        who: 'author',
-        of: 'community',
-        can: 'write'
-      },
-      {
-        who: 'recipient',
-        of: 'community/channel/message',
-        can: 'write'
-      },
-      {
-        role: 'community/admin',
-        can: 'write'
-      },
-      {
-        role: 'community/admin',
-        can: 'delete'
-      }
-    ],
+    $actions: adminOrCreatorActions,
     media: {
       $actions: [
         {
           who: 'author',
           of: 'community/channel/message',
           can: 'write'
+        },
+        {
+          role: 'community/member',
+          can: 'query'
+        },
+        {
+          role: 'community/member',
+          can: 'read'
         }
       ]
     },
@@ -86,9 +94,9 @@ const channelTemplate = {
   }
 };
 const allMemberChannel = JSON.parse(JSON.stringify(channelTemplate));
-      allMemberChannel.$actions.concat(memberActions);
-      allMemberChannel.message.$actions.concat(memberActions)
-      allMemberChannel.message.reaction.$actions.concat(memberActions)
+      allMemberChannel.$actions = allMemberChannel.$actions.concat(memberActions);
+      allMemberChannel.message.$actions = allMemberChannel.message.$actions.concat(memberActions)
+      allMemberChannel.message.reaction.$actions = allMemberChannel.message.reaction.$actions.concat(memberActions)
 
 const privateChannel = JSON.parse(JSON.stringify(channelTemplate))
 
@@ -116,7 +124,7 @@ privateChannel.participant = {
   ]
 }
 
-privateChannel.message.$actions.concat([{
+privateChannel.message.$actions = privateChannel.message.$actions.concat([{
   role: 'community/channel/participant',
   can: 'write'
 },
@@ -183,22 +191,23 @@ const appDefinition = {
       ]
     },
     community: {
+      $actions: memberActions,
       admin: {
         $contextRole: true,
         $actions: adminOrCreatorActions
       },
       member: {
         $contextRole: true,
-        $actions: adminOrCreatorActions
+        $actions: adminOrCreatorAndMemberQueryRead
       },
       details: {
-        $actions: adminOrCreatorActions
+        $actions: adminOrCreatorAndMemberQueryRead
       },
       logo: {
-        $actions: adminOrCreatorActions
+        $actions: adminOrCreatorAndMemberQueryRead
       },
       hero: {
-        $actions: adminOrCreatorActions
+        $actions: adminOrCreatorAndMemberQueryRead
       },
       channel: allMemberChannel,
       convo: {

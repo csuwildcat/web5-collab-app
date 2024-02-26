@@ -24,7 +24,7 @@ Object.defineProperty(VirtualList, 'template', {
 });
 
 import PageStyles from  '../styles/page.css';
-import { DOM, notify } from '../utils/helpers';
+import { DOM, notify } from '../utils/helpers.js';
 import date from  '../utils/date.js';
 
 const transitionDuration = 200;

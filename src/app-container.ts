@@ -11,7 +11,7 @@ import * as protocols from './utils/protocols';
 import './styles/global.css';
 import './components/global.js';
 import './styles/theme.js';
-import { DOM, notify, natives } from './utils/helpers';
+import { DOM, notify, natives } from './utils/helpers.js';
 import PageStyles from  './styles/page.css';
 
 import { SpinnerMixin, SpinnerStyles } from './utils/spinner';
@@ -703,7 +703,9 @@ export class AppContainer extends AppContextMixin(SpinnerMixin(LitElement)) {
   async addMember(did){
     const communityId = this.context?.community?.id;
     if (communityId) {
+
       let member = await datastore.getMember(did, communityId) || await datastore.addMember(did, communityId);
+      console.log('member', member);
       if (member) {
         const drl = natives.drl.create(this.context.community.author, {
           protocol: protocols.sync.uri,
@@ -711,10 +713,11 @@ export class AppContainer extends AppContextMixin(SpinnerMixin(LitElement)) {
             communities: this.context.community.id
           }
         })
+        console.log(drl);
         let invite = await datastore.sendInvite(did, drl);
-        console.log(invite);
+        console.log('invite', invite);
       }
-      //console.log(invite);
+      // console.log(invite);
       // record = await datastore.addMember(this.newMemberProfileCard.did, communityId);
       // console.log(record);
       // return record;
@@ -742,7 +745,6 @@ export class AppContainer extends AppContextMixin(SpinnerMixin(LitElement)) {
     const channels = this.getChannels();
     const communityId = this.context?.community?.id
     const inviteCount = this.context.invites.size;
-    console.log(inviteCount);
     return html`
 
       <vaadin-app-layout id="app_layout">

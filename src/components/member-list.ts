@@ -5,7 +5,7 @@ import { ifDefined } from 'lit/directives/if-defined.js';
 
 import { AppContext } from '../utils/context.js';
 
-import { DOM, notify } from '../utils/helpers';
+import { DOM, notify } from '../utils/helpers.js';
 import date from  '../utils/date';
 import { SpinnerMixin, SpinnerStyles } from '../utils/spinner';
 

@@ -22,6 +22,6 @@
         "vite/client"
       ]
   },
-  "include": ["src/**/*.ts", "src/pages/home.js", "src/utils/context.js"],
+  "include": ["src/**/*.ts", "src/pages/home.js", "src/utils/context.js", "src/utils/helpers.js"],
   "exclude": ["node_modules"]
 }

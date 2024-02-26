@@ -11,6 +11,7 @@ import './global.js'
 import PageStyles from  '../styles/page.css';
 
 import '../components/w5-img'
+import '../components/invite-item';
 
 @customElement('profile-view')
 export class ProfileView extends LitElement {
@@ -195,7 +196,6 @@ export class ProfileView extends LitElement {
           await this.socialRecord.update({ data: this.socialData });
           var { status } = await this.socialRecord.send(this.did)
         }
-        console.log('send', status, this.socialRecord);
         notify.success('Your profile info was saved')
       }
       catch(e) {
@@ -236,15 +236,9 @@ export class ProfileView extends LitElement {
         </sl-tab-panel>
         ${ !this.isOwner ? nothing : html`
           <sl-tab-panel name="notifications" ?active="${this.panel === 'notifications' || nothing}">
-            ${
-              Array.from(this.context.invites).map(([id, invite]) => {
-                console.log(natives.drl.parse(invite.cache.json.link, '/:did/protocols/:protocolId/communities/:communityId'));
-
-                return html`
-                  <div>${ invite.cache.json.link }</div>
-                `
-              })
-            }
+            ${Array.from(this.context.invites).map(([id, invite]) => html`
+              <invite-item drl="${invite.cache.json.link}"></invite-item>
+            `)}
           </sl-tab-panel>
         `}
 
