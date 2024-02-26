@@ -64,12 +64,15 @@ export class MemberList extends SpinnerMixin(LitElement) {
       name,
       description
     }});
-
-    console.log(community);
     try {
       this.app.instance.addCommunity(community);
       console.log('send', this.app.communities);
       this.app.instance.router.navigateTo(`/communities/${community.id}`);
+      DOM.fireEvent(this, 'community-added', {
+        detail: {
+          community
+        }
+      })
       notify.success('Your new community was created!')
     }
     catch(e) {

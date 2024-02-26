@@ -640,28 +640,6 @@ export class AppContainer extends AppContextMixin(SpinnerMixin(LitElement)) {
     })
   }
 
-  async createCommunity(e){
-    const name = this.newCommunityName.value;
-    const description = this.newCommunityDescription.value;
-    if (!name || !description) {
-      notify.error('You must add a name and description to create a new community')
-      return;
-    }
-    const community = await datastore.createCommunity({ data: {
-      name,
-      description
-    }});
-    try {
-      this.addCommunity(community);
-      console.log('send', status, this.context.communities);
-      notify.success('Your new community was created!')
-      this.addCommunityModal.hide();
-    }
-    catch(e) {
-      notify.error('There was a problem creating your new community')
-    }
-  }
-
   async createChannel(){
     const name = this.newChannelName.value;
     const description = this.newChannelDescription.value;
@@ -856,7 +834,7 @@ export class AppContainer extends AppContextMixin(SpinnerMixin(LitElement)) {
       </sl-popup>
 
       <sl-dialog id="add_community_modal" label="Add a Community">
-        <add-community></add-community>
+        <add-community @community-added="${ e => this.addCommunityModal.hide() }"></add-community>
       </sl-dialog>
 
       <sl-dialog id="add_channel_modal" label="Add a Channel">

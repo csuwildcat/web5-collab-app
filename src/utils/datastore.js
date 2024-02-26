@@ -130,6 +130,9 @@ class Datastore {
     if (options.parentId) params.message.parentId = options.parentId;
     if (options.contextId) params.message.contextId = options.contextId;
     if (options.data) params.data = options.data;
+    else if (options.dataFormat === 'application/json') {
+      params.data = {};
+    }
     if (options.dataFormat) params.message.dataFormat = options.dataFormat;
     if (options.published !== undefined) params.message.published = options.published;
     if (options.recipient) params.message.recipient = options.recipient;
