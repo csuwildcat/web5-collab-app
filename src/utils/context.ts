@@ -33,9 +33,10 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
   }
 
   loadProfile(did){
+    if (did === this.context.did) return;
+    this.context.did = did;
     clearInterval(this.context.inviteChron);
     return this.context.profileReady = new Promise(async resolve => {
-      if (did === this.context.did) return;
       const records = await Promise.all([
         datastore.setAvatar(null, null, did),
         await datastore.getSocial({ from: did }) || datastore.createSocial({ data: {
@@ -114,6 +115,28 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
     const channel = channelId || this.getChannel(community.id);
     if (channel) this.setChannel(channel, true);
     else this.requestUpdate();
+  }
+
+  async installCommunity(id, from){
+    try {
+      const [community, admins, member, channels] = await Promise.all([
+        datastore.getCommunity(id, { from, role: 'community/member', cache: false }),
+        datastore.getAdmins(id, { from, cache: false }),
+        datastore.getMember(this.context.did, id, { from, cache: false }),
+        datastore.getChannels(id, { from, role: 'community/member', cache: false })
+      ]);
+      await Promise.all([
+        community.import(),
+        admins.map(z => z.import()),
+        member.import(),
+        channels.map(z => z.import()),
+      ].flat())
+      this.setCommunity(id);
+    }
+    catch(e) {
+      console.log(e);
+
+    }
   }
 
   getChannel(community){

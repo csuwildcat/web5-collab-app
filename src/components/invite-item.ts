@@ -1,15 +1,26 @@
 import { LitElement, html, css, nothing } from 'lit';
+import { consume } from '@lit/context';
 import { customElement, query } from 'lit/decorators.js';
 import { ifDefined } from 'lit/directives/if-defined.js';
 
-import { DOM, natives } from '../utils/helpers.js';
+import { AppContext } from '../utils/context.js';
+
+import { DOM, natives, notify } from '../utils/helpers.js';
 import { SpinnerMixin, SpinnerStyles } from '../utils/spinner.js';
 import './global.js'
 
 import './w5-img.js'
 
+async function getCommunity(drl){
+  return await datastore.getCommunity(drl.path.community, { from: drl.did, role: 'community/member' });
+}
+
 @customElement('invite-item')
 export class InviteItem extends SpinnerMixin(LitElement) {
+
+  @consume({context: AppContext, subscribe: true})
+  context;
+
   static styles = [
     SpinnerStyles,
     css`
@@ -57,6 +68,7 @@ export class InviteItem extends SpinnerMixin(LitElement) {
         inset: 0;
         opacity: 0;
         z-index: 1000;
+        pointer-events: none;
       }
 
       #empty_text:before,
@@ -64,14 +76,14 @@ export class InviteItem extends SpinnerMixin(LitElement) {
         content: attr(data-value);
       }
 
-      :host(:not([did])) *:not(#empty_text),
+      :host(:not([drl])) *:not(#empty_text),
       :host([error]) *:not(#error_text),
       :host([loading]) *:not(.spinner-mixin) {
         opacity: 0;
         pointer-events: none;
       }
 
-      :host(:not([did])) #empty_text,
+      :host(:not([drl])) #empty_text,
       :host([error]) #error_text {
         opacity: 1;
         pointer-events: all;
@@ -112,7 +124,6 @@ export class InviteItem extends SpinnerMixin(LitElement) {
   willUpdate(changedProperties) {
     if (changedProperties.has('drl') && this.drl) {
       this._drl = natives.drl.parse(this.drl, '/:did/protocols/:protocol/communities/:community');
-      console.log(this.drl, this._drl);
       this.loadInvite();
     }
   }
@@ -122,36 +133,38 @@ export class InviteItem extends SpinnerMixin(LitElement) {
     this.loading = true;
     this.startSpinner();
     const drl = this.drl;
-    const target = this._drl.did;
-    const community = this._drl.path.community;
-    console.log(this._drl);
-    Promise.all([
-      datastore.getCommunity(community, { from: target, role: 'community/member' }).then(async record => {
-        console.log(record);
-      }),
-      datastore.getChannels(community, { from: target, role: 'community/member' }).then(async records => {
-        console.log(records);
-      })
-    ]).then(() => {
-      if (this.drl === drl) this.requestUpdate();
-      this.loading = false;
-      this.stopSpinner();
-    }).catch(e => {
-      console.log(e);
-      this.loading = false;
-      this.stopSpinner();
+    try {
+      const record = await getCommunity(this._drl);
+      if (this.drl === drl) {
+        this.community = record;
+        this.requestUpdate();
+      }
+    }
+    catch (e){
       this.error = true;
-    })
+    }
+    this.loading = false;
+    this.stopSpinner();
+  }
+
+  async installCommunity(){
+    if (!this.community) return;
+    await this.context.instance.installCommunity(this.community.id, this._drl.did);
   }
 
 
   render() {
+    const communityData = this.community?.cache?.json || {};
     return html`
       <w5-img part="image" src="${ ifDefined(this.avatarDataUri) }" fallback="people"></w5-img>
       <div id="content">
-        <h3 part="name">${ this.name || 'Unknown Invite' }</h3>
-        ${ this.description ? html`<p>${this.description}</p>` : nothing }
+        <h3 part="name">${ communityData.name || 'Unknown Community' }</h3>
+        ${ communityData.description ? html`<p>${this.description}</p>` : nothing }
       </div>
+      <sl-button variant="default" size="small" @click="${ e => this.installCommunity(e) }">
+        <sl-icon slot="prefix" name="plus"></sl-icon>
+        Add Community
+      </sl-button>
       <div id="empty_text" data-value="${this.emptyText || '' }"></div>
       <div id="error_text" data-value="${this.error && this.errorText || "Couldn't find anything for that" }"></div>
     `;

@@ -139,19 +139,51 @@ export class CommunityChannel extends SpinnerMixin(LitElement) {
 
   willUpdate(changedProperties) {
     if (changedProperties.has('channel') && this.channel) {
-      this.loadMessages(this.channel);
+      clearInterval(this.#messagePoller);
+      this.loadMessages();
     }
   }
 
-  async loadMessages(channelId){
-    if (!channelId) {
+  async loadMessages(){
+    if (!this.channel) {
       this.messages = [];
       return;
     }
     this.startSpinner('#messages_wrapper', { minimum: transitionDuration });
-    this.messages = await datastore.getChannelMessages(channelId);
+    this.messages = await this.getLatestMessages()
     if (this.messageList) this.messageList.items = [...this.messages];
     this.stopSpinner('#messages_wrapper');
+    this.#messagePoller = setInterval(async () => {
+      this.messages = await this.getLatestMessages()
+    }, 3000);
+  }
+
+  private #messagePoller;
+  async getLatestMessages(since){
+    const options = { from: this.context.community.author, contextId: this.community };
+    if (this.context.community.author !== this.context.did) { // TODO: account for whether they are an admin
+      options.role = 'community/member';
+    }
+    console.log(options);
+    return datastore.getChannelMessages(this.channel, options);
+  }
+
+  async submitMessage(e){
+    const message = e.detail.value;
+    const host = this.context.community.author;
+    const options = {
+      contextId: this.community,
+      data: {
+        body: message
+      }
+    };
+    if (this.context.community.author !== this.context.did) { // TODO: account for whether they are an admin
+      options.role = 'community/member';
+    }
+    const record = await datastore.createChannelMessage(this.community, this.channel, options);
+    await record.send(host);
+    this.messageList.items = this.messages = this.messages.concat([record]);
+    this.messageList.requestContentUpdate();
   }
 
   renderMessage(root, list, { item: record, index }) {
@@ -164,17 +196,6 @@ export class CommunityChannel extends SpinnerMixin(LitElement) {
       root
     );
   };
-
-  async submitMessage(e){
-    const message = e.detail.value;
-    const record = await datastore.createChannelMessage(this.community, this.channel, {
-      data: {
-        body: message
-      }
-    });
-    this.messageList.items = this.messages = this.messages.concat([record]);
-    this.messageList.requestContentUpdate();
-  }
 
   render() {
     const channelData = this.context.channels.get(this.channel)?.cache?.json;

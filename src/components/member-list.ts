@@ -89,7 +89,7 @@ export class MemberList extends SpinnerMixin(LitElement) {
   async loadMembers(){
     this.startSpinner(null, { minimum: transitionDuration });
     this.members = (await Promise.all([
-      datastore.getMembers(this.context, this.path),
+      datastore.getMembers(this.context, { protocolPath: this.path }),
       DOM.delay(transitionDuration)
     ]))[0]
     if (this.list) this.list.items = [...this.members];

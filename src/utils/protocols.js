@@ -203,7 +203,16 @@ const appDefinition = {
       $actions: memberActions,
       admin: {
         $contextRole: true,
-        $actions: adminOrCreatorActions
+        $actions: adminOrCreatorActions.concat([
+          {
+            role: 'community/member',
+            can: 'query'
+          },
+          {
+            role: 'community/member',
+            can: 'read'
+          }
+        ])
       },
       member: {
         $contextRole: true,

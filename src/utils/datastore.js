@@ -4,6 +4,13 @@ import * as protocols from './protocols';
 
 setInterval(() => Datastore.cache = {}, 1000 * 60 * 60)
 
+async function cacheJson(records){
+  await Promise.all((Array.isArray(records) ? records : [records]).map(async record => {
+    record.cache = {
+      json: await record.data?.json()?.catch(e => {})?.then(obj => obj)
+    }
+  }))
+}
 class Datastore {
 
   static cache = {}
@@ -164,9 +171,7 @@ class Datastore {
     const { records, status } = await this.queryProtocolRecords('profile', 'social', options)
     const latestRecord = records[0];
     if (!latestRecord) return;
-    latestRecord.cache = {
-      json: await latestRecord.data.json()
-    }
+    if (options.cache !== false) await cacheJson(latestRecord)
     Datastore.setCache(did, 'social', latestRecord);
     return latestRecord;
   }
@@ -177,9 +182,7 @@ class Datastore {
       data: options.data,
       dataFormat: 'application/json'
     })
-    record.cache = {
-      json: await record.data.json()
-    }
+    if (options.cache !== false) await cacheJson(record)
     return record;
   }
 
@@ -252,9 +255,7 @@ class Datastore {
     const { record, status } = await this.createProtocolRecord('sync', 'community', Object.assign({
       dataFormat: 'application/json'
     }, options));
-    record.cache = {
-      json: await record.data.json()
-    }
+    if (options.cache !== false) await cacheJson(record)
     return record;
   }
 
@@ -263,19 +264,13 @@ class Datastore {
     const { record, status } = await this.readProtocolRecord(id, options)
     console.log(status);
     if (status.code > 299) return status;
-    record.cache = {
-      json: await record.data.json()
-    }
+    if (options.cache !== false) await cacheJson(record)
     return record;
   }
 
   async getCommunities (options = {}) {
     const { records } = await this.queryProtocolRecords('sync', 'community', options)
-    await Promise.all(records.map(async record => {
-      record.cache = {
-        json: await record.data.json()
-      }
-    }))
+    if (options.cache !== false) await cacheJson(records)
     return records;
   }
 
@@ -285,30 +280,21 @@ class Datastore {
       contextId: communityId,
       dataFormat: 'application/json'
     }, options));
-    record.cache = {
-      json: await record.data?.json()?.catch(e => {})?.then(obj => obj)
-    }
+    if (options.cache !== false) await cacheJson(record)
     return record;
   }
 
   async getChannels (communityId, options = {}) {
     const { records } = await this.queryProtocolRecords('sync', 'community/channel', Object.assign({ parentId: communityId, contextId: communityId }, options))
-    await Promise.all(records.map(async record => {
-      record.cache = {
-        json: await record.data?.json()?.catch(e => {})?.then(obj => obj)
-      }
-    }))
+    if (options.cache !== false) await cacheJson(records)
     return records;
   }
 
   async getChannelMessages (channelId, options = {}) {
-    const { records } = await this.queryProtocolRecords('sync', 'community/channel/message', Object.assign({ parentId: channelId }, options))
-    await Promise.all(records.map(async record => {
-      record.cache = {
-        json: await record.data?.json()?.catch(e => {})?.then(obj => obj)
-      }
-    }))
-    return records;
+    const response = await this.queryProtocolRecords('sync', 'community/channel/message', Object.assign({ parentId: channelId, sort: 'createdAscending' }, options))
+    if (options.cache !== false) await cacheJson(response.records)
+    console.log(response);
+    return response.records;
   }
 
   async createChannelMessage(communityId, channelId, options = {}) {
@@ -317,9 +303,7 @@ class Datastore {
       parentId: channelId,
       dataFormat: 'application/json'
     }, options));
-    record.cache = {
-      json: await record.data?.json()?.catch(e => {})?.then(obj => obj)
-    }
+    if (options.cache !== false) await cacheJson(record)
     return record;
   }
 
@@ -329,19 +313,13 @@ class Datastore {
       parentId: communityId,
       dataFormat: 'application/json'
     }, options));
-    record.cache = {
-      json: await record.data?.json()?.catch(e => {})?.then(obj => obj)
-    }
+    if (options.cache !== false) await cacheJson(record)
     return record;
   }
 
   async getConvos (communityId, options = {}) {
     const { records } = await this.queryProtocolRecords('sync', 'community/convo', Object.assign({ parentId: communityId }, options))
-    await Promise.all(records.map(async record => {
-      record.cache = {
-        json: await record.data?.json()?.catch(e => {})?.then(obj => obj)
-      }
-    }))
+    if (options.cache !== false) await cacheJson(records)
     return records;
   }
 
@@ -352,25 +330,24 @@ class Datastore {
       contextId: communityId,
       dataFormat: 'application/json'
     }, options));
-    record.cache = {
-      json: await record.data?.json()?.catch(e => {})?.then(obj => obj)
-    }
+    if (options.cache !== false) await cacheJson(record)
     console.log(status);
     return record;
   }
 
-  async getMember (recipient, communityId, protocolPath, options = {}) {
-    const { records } = await this.queryProtocolRecords('sync', protocolPath || 'community/member', Object.assign({ recipient, parentId: communityId }, options))
+  async getMember (recipient, communityId, options = {}) {
+    const { records } = await this.queryProtocolRecords('sync', options.protocolPath || 'community/member', Object.assign({ recipient, parentId: communityId }, options))
     return records[0];
   }
 
-  async getMembers (parentId, protocolPath, options = {}) {
-    const { records } = await this.queryProtocolRecords('sync', protocolPath || 'community/member', Object.assign({ parentId }, options))
-    await Promise.all(records.map(async record => {
-      record.cache = {
-        json: await record.data?.json()?.catch(e => {})?.then(obj => obj)
-      }
-    }))
+  async getMembers (communityId, options = {}) {
+    const { records } = await this.queryProtocolRecords('sync', options.protocolPath || 'community/member', Object.assign({ parentId: communityId }, options))
+    if (options.cache !== false) await cacheJson(records)
+    return records;
+  }
+
+  async getAdmins (communityId, options = {}) {
+    const { records } = await this.queryProtocolRecords('sync', options.protocolPath || 'community/admin', Object.assign({ parentId: communityId }, options))
     return records;
   }
 
@@ -378,9 +355,7 @@ class Datastore {
     if (!options.skipCheck) {
       let invite = await this.getActiveInvite({ recipient });
       if (invite) {
-        invite.cache = {
-          json: await invite.data?.json()?.catch(e => {})?.then(obj => obj)
-        }
+        if (options.cache !== false) await cacheJson(invite)
         return invite;
       }
     }
@@ -390,9 +365,7 @@ class Datastore {
       dataFormat: 'application/json',
       data: { link }
     }, options));
-    record.cache = {
-      json: await record.data?.json()?.catch(e => {})?.then(obj => obj)
-    }
+    if (options.cache !== false) await cacheJson(record)
     const { status: sendStatus } = await record.send(recipient);
     console.log(sendStatus);
     if (sendStatus.code === 202) {
@@ -407,20 +380,14 @@ class Datastore {
     const { records } = await this.queryProtocolRecords('sync', 'invite', options)
     const record = records.find(record => !record.isDeleted)
     if (record) {
-      record.cache = {
-        json: await record.data?.json()?.catch(e => {})?.then(obj => obj)
-      }
+      if (options.cache !== false) await cacheJson(record)
     }
     return record;
   }
 
   async getInvites (options = {}) {
     const { records } = await this.queryProtocolRecords('sync', 'invite', options)
-    await Promise.all(records.map(async record => {
-      record.cache = {
-        json: await record.data?.json()?.catch(e => {})?.then(obj => obj)
-      }
-    }))
+    if (options.cache !== false) await cacheJson(records)
     return records;
   }
 
