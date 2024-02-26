@@ -79,14 +79,20 @@ class Datastore {
       }
     }
     if (options.from) params.from = options.from;
-    if (options.parentId !== undefined) {
+    if (options.parentId) {
       params.message.filter.parentId = options.parentId
+    }
+    if (options.contextId) {
+      params.message.filter.contextId = options.contextId
     }
     if (options.published !== undefined) {
       params.message.filter.published = options.published
     }
-    if (options.recipient !== undefined) {
+    if (options.recipient) {
       params.message.filter.recipient = options.recipient
+    }
+    if (options.role) {
+      params.message.protocolRole = options.role
     }
     if (options.sort || options.latestRecord) {
       params.message.dateSort = options.latestRecord ? 'createdDescending' : options.sort;
@@ -286,7 +292,7 @@ class Datastore {
   }
 
   async getChannels (communityId, options = {}) {
-    const { records } = await this.queryProtocolRecords('sync', 'community/channel', Object.assign({ parentId: communityId }, options))
+    const { records } = await this.queryProtocolRecords('sync', 'community/channel', Object.assign({ parentId: communityId, contextId: communityId }, options))
     await Promise.all(records.map(async record => {
       record.cache = {
         json: await record.data?.json()?.catch(e => {})?.then(obj => obj)

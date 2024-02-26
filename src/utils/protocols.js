@@ -94,7 +94,16 @@ const channelTemplate = {
   }
 };
 const allMemberChannel = JSON.parse(JSON.stringify(channelTemplate));
-      allMemberChannel.$actions = allMemberChannel.$actions.concat(memberActions);
+      allMemberChannel.$actions = allMemberChannel.$actions.concat([
+        {
+          role: 'community/member',
+          can: 'query'
+        },
+        {
+          role: 'community/member',
+          can: 'read'
+        }
+      ]);
       allMemberChannel.message.$actions = allMemberChannel.message.$actions.concat(memberActions)
       allMemberChannel.message.reaction.$actions = allMemberChannel.message.reaction.$actions.concat(memberActions)
 
