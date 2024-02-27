@@ -107,6 +107,7 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
       return;
     }
     this.context.community = community;
+    this.context.community.logo = await datastore.getCommunityLogo({ contextId: community.id });
     await Promise.all([
       this.loadChannels(),
       this.loadConvos()
