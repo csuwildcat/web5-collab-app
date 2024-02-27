@@ -105,6 +105,10 @@ export class InviteItem extends SpinnerMixin(LitElement) {
       type: String,
       reflect: true
     },
+    invite: {
+      type: Object,
+      attribute: false
+    },
     error: {
       type: Boolean,
       reflect: true
@@ -121,9 +125,12 @@ export class InviteItem extends SpinnerMixin(LitElement) {
     },
   };
 
+  @query('#install_button', false)
+  installButton;
+
   willUpdate(changedProperties) {
-    if (changedProperties.has('drl') && this.drl) {
-      this._drl = natives.drl.parse(this.drl, '/:did/protocols/:protocol/communities/:community');
+    if (changedProperties.has('invite') && this.invite) {
+      this.drl = natives.drl.parse(this.invite.cache.json.link, '/:did/protocols/:protocol/communities/:community');
       this.loadInvite();
     }
   }
@@ -134,7 +141,7 @@ export class InviteItem extends SpinnerMixin(LitElement) {
     this.startSpinner();
     const drl = this.drl;
     try {
-      const record = await getCommunity(this._drl);
+      const record = await getCommunity(drl);
       if (this.drl === drl) {
         this.community = record;
         this.requestUpdate();
@@ -149,8 +156,17 @@ export class InviteItem extends SpinnerMixin(LitElement) {
 
   async installCommunity(){
     if (!this.community) return;
-    const success = await this.context.instance.installCommunity(this.community.id, this._drl.did);
-    if (success) {}
+    this.installButton.loading = true;
+    try {
+      const success = await this.context.instance.installCommunity(this.community.id, this.drl.did);
+      if (success) {
+        await this.invite.update({ data: this.invite.cache.json })
+      }
+    }
+    catch(e){
+      console.log(e);
+    }
+    this.installButton.loading = false;
   }
 
 
@@ -162,7 +178,7 @@ export class InviteItem extends SpinnerMixin(LitElement) {
         <h3 part="name">${ communityData.name || 'Unknown Community' }</h3>
         ${ communityData.description ? html`<p>${this.description}</p>` : nothing }
       </div>
-      <sl-button variant="default" size="small" @click="${ e => this.installCommunity(e) }">
+      <sl-button id="install_button" variant="default" size="small" @click="${ e => this.installCommunity(e) }">
         <sl-icon slot="prefix" name="plus"></sl-icon>
         Add Community
       </sl-button>

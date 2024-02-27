@@ -10,7 +10,7 @@ const initialState = {
   communities: new Map(),
   channels: new Map(),
   convos: new Map(),
-  invites: new Map(),
+  invites: [],
 };
 
 export const AppContext = createContext(initialState);
@@ -29,6 +29,7 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
       communities: new Map(),
       channels: new Map(),
       convos: new Map(),
+      invites: [],
     }
   }
 
@@ -87,11 +88,10 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
     this.context.convos = new Map(convos.map(convo => [convo.id, convo]));
   }
 
-  async loadInvites(did, update) {
-    did = this.context.did || did;
-    let invites = await datastore.getInvites({ from: did, recipient: did });
-    this.context.invites = new Map(invites.map(invite => [invite.id, invite]));
-    if (update !== false) this.updateState({ invites: this.context.invites });
+  async loadInvites(_did, update) {
+    const did = this.context.did || _did;
+    const invites = await datastore.getInvites({ from: did, recipient: did });
+    if (invites && update !== false) this.updateState({ invites: invites });
   }
 
   async setCommunity(communityId, channelId){

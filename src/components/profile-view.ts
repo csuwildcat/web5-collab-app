@@ -236,9 +236,9 @@ export class ProfileView extends LitElement {
         </sl-tab-panel>
         ${ !this.isOwner ? nothing : html`
           <sl-tab-panel name="notifications" ?active="${this.panel === 'notifications' || nothing}">
-            ${Array.from(this.context.invites).map(([id, invite]) => html`
-              <invite-item drl="${invite.cache.json.link}"></invite-item>
-            `)}
+            ${this.context.invites.map(invite => {
+              return invite.initialWrite ? nothing : html`<invite-item .invite="${invite}"></invite-item>`
+            })}
           </sl-tab-panel>
         `}
 

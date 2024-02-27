@@ -73,7 +73,7 @@ export class AppContainer extends AppContextMixin(SpinnerMixin(LitElement)) {
     communities: new Map(),
     channels: new Map(),
     convos: new Map(),
-    invites: new Map(),
+    invites: [],
   };
 
   static styles = [
@@ -722,7 +722,7 @@ export class AppContainer extends AppContextMixin(SpinnerMixin(LitElement)) {
   render() {
     const channels = this.getChannels();
     const communityId = this.context?.community?.id
-    const inviteCount = this.context.invites.size;
+    const inviteCount = this.context.invites.reduce((count, invite) => count + (invite.initialWrite ? 0 : 1), 0);
     return html`
 
       <vaadin-app-layout id="app_layout">
