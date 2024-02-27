@@ -113,6 +113,7 @@ sl-input, sl-textarea {
   text-align: center;
   border: 4px dashed rgba(255 255 255 / 0.2);
   border-radius: 7px;
+  -webkit-user-select: none;
   user-select: none;
 }
 

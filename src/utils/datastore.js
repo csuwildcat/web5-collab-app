@@ -268,6 +268,40 @@ class Datastore {
     return record;
   }
 
+  async setCommunityLogo(blob, communityId, options = {}) {
+    let record = await this.getCommunityLogo({ contextId: communityId })
+    if (record) {
+      await record.update({ data: blob })
+    } else {
+      ({ record } = await datastore.createProtocolRecord('sync', 'community/logo',
+      {
+        data: blob,
+        parentId: communityId,
+        contextId: communityId
+      }))
+    }
+
+    if (options.cache !== false && record) {
+      record.cache = {
+        blob: await record.data?.blob()?.catch(e => {})?.then(obj => obj),
+        uri: URL.createObjectURL(blob)
+      }
+    }
+    return record
+  }
+
+  async getCommunityLogo(options = {}) {
+    const { records } = await this.queryProtocolRecords('sync', 'community/logo', options);
+    if (options.cache !== false && records[0]) {
+      const blob = await records[0].data?.blob()?.catch(e => {})?.then(obj => obj)
+      records[0].cache = {
+        blob,
+        uri: URL.createObjectURL(blob)
+      }
+    }
+    return records[0];
+  }
+
   async getCommunities (options = {}) {
     const { records } = await this.queryProtocolRecords('sync', 'community', options)
     if (options.cache !== false) await cacheJson(records)

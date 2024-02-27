@@ -25,6 +25,7 @@ import './pages/community.js';
 import { ProfileCard } from './components/profile-card'
 import './components/add-community'
 import './components/profile-view'
+import './components/community-view'
 import './components/member-list'
 
 import { Web5 } from '@web5/api';
@@ -552,11 +553,14 @@ export class AppContainer extends AppContextMixin(SpinnerMixin(LitElement)) {
   @query('#new_channel_description', true)
   newChannelDescription
 
-  @query('#community_profile_modal', true)
-  communityProfileModal
+  @query('#community_settings_modal', true)
+  communitySettingsModal
 
   @query('#member_profile_modal', true)
   memberProfileModal
+
+  @query('#community_settings_view', true)
+  communitySettingsView
 
   @query('#member_profile_view', true)
   memberProfileView
@@ -713,6 +717,11 @@ export class AppContainer extends AppContextMixin(SpinnerMixin(LitElement)) {
 
   }
 
+  viewCommunitySettings(){
+    this.communitySettingsView.did = this.context.did;
+    this.communitySettingsModal.show()
+  }
+
   viewUserProfile(did, panel){
     this.memberProfileView.did = did || this.context.did;
     this.memberProfileView.panel = panel || 'profile';
@@ -768,7 +777,7 @@ export class AppContainer extends AppContextMixin(SpinnerMixin(LitElement)) {
               <sl-menu>
                 <sl-menu-item @click="${ e => this.addMemberModal.show()}"><sl-icon name="person-add" slot="prefix"></sl-icon>Add a Member</sl-menu-item>
                 <sl-menu-item @click="${ e => this.viewMembers(communityId, 'community/member')}"><sl-icon name="people" slot="prefix"></sl-icon>View Members</sl-menu-item>
-                <sl-menu-item @click="${ e => this.communityProfileModal.show()}"><sl-icon name="pencil-square" slot="prefix"></sl-icon>Edit Profile</sl-menu-item>
+                <sl-menu-item @click="${ e => this.viewCommunitySettings()}"><sl-icon name="pencil-square" slot="prefix"></sl-icon>Edit Profile</sl-menu-item>
               </sl-menu>
             </sl-dropdown>
           </header>
@@ -875,8 +884,8 @@ export class AppContainer extends AppContextMixin(SpinnerMixin(LitElement)) {
         <member-list></member-list>
       </sl-drawer>
 
-      <sl-dialog id="community_profile_modal" label="Community Profile" class="modal-page" @sl-request-close="${e => e.detail.source === 'overlay' && e.preventDefault()}">
-        <profile-view></profile-view>
+      <sl-dialog id="community_settings_modal" label="Community Settings" class="modal-page" @sl-request-close="${e => e.detail.source === 'overlay' && e.preventDefault()}">
+        <community-view id="community_settings_view"></community-view>
       </sl-dialog>
 
       <sl-dialog id="member_profile_modal" label="Member Profile" class="modal-page" @sl-request-close="${e => e.detail.source === 'overlay' && e.preventDefault()}">
