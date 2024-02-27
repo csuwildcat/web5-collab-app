@@ -119,35 +119,23 @@ export class ProfileCard extends SpinnerMixin(LitElement) {
   ]
 
   static properties = {
-    loading: {
-      type: Boolean,
-      reflect: true
-    },
     did: {
       type: String,
       reflect: true
     },
     minimal: {
-      type: Boolean,
-      reflect: true
+      type: Boolean
     },
     vertical: {
-      type: Boolean,
-      reflect: true
-    },
-    error: {
-      type: Boolean,
-      reflect: true
+      type: Boolean
     },
     errorText: {
       attribute: 'error-text',
-      type: String,
-      reflect: true
+      type: String
     },
     emptyText: {
       attribute: 'empty-text',
-      type: String,
-      reflect: true
+      type: String
     },
   };
 
@@ -163,48 +151,49 @@ export class ProfileCard extends SpinnerMixin(LitElement) {
     ProfileCard.instances.delete(this)
   }
 
-  set did(did){
-    if (this._did === did) return;
-    this._did = did;
-    this.error = false;
-    this.loading = true;
+  willUpdate(changedProperties) {
+    if (changedProperties.has('did') && this.did) {
+      this.loadDid();
+    }
+  }
+
+  async loadDid(){
+    this.removeAttribute('error')
+    this.setAttribute('loading', '')
     this.startSpinner();
+    const did = this.did;
     DOM.fireEvent(this, 'profile-card-loading', {
       detail: {
         input: did
       }
     });
-    Promise.all([
-      datastore.readAvatar({ from: did }).then(async record => {
-        this.avatarDataUri = record.cache.uri || undefined;
-      }),
-      datastore.getSocial({ from: did }).then(async record => {
-        this.socialData = await record.cache.json || {};
-      })
-    ]).then(() => {
-      if (this._did === did) this.requestUpdate();
-      this.loading = false;
+    try {
+      const [avatar, social] = await Promise.all([
+        datastore.readAvatar({ from: did }),
+        datastore.getSocial({ from: did })
+      ])
+      this.avatarDataUri = avatar.cache.uri || undefined;
+      this.socialData = await social.cache.json || {};
+      this.requestUpdate();
+      await DOM.skipFrame();
+      this.removeAttribute('loading')
       this.stopSpinner();
       DOM.fireEvent(this, 'profile-card-loaded', {
         detail: {
           input: did
         }
       })
-    }).catch(e => {
-      console.log(e);
-      this.loading = false;
+    }
+    catch(e){
+      this.setAttribute('error', '')
+      this.removeAttribute('loading')
       this.stopSpinner();
-      this.error = true;
       DOM.fireEvent(this, 'profile-card-error', {
         detail: {
           input: did
         }
       })
-    })
-  }
-
-  get did(){
-    return this._did;
+    }
   }
 
   render() {

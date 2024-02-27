@@ -685,9 +685,7 @@ export class AppContainer extends AppContextMixin(SpinnerMixin(LitElement)) {
   async addMember(did){
     const communityId = this.context?.community?.id;
     if (communityId) {
-
       let member = await datastore.getMember(did, communityId) || await datastore.addMember(did, communityId);
-      console.log('member', member);
       if (member) {
         const drl = natives.drl.create(this.context.community.author, {
           protocol: protocols.sync.uri,
@@ -695,14 +693,10 @@ export class AppContainer extends AppContextMixin(SpinnerMixin(LitElement)) {
             communities: this.context.community.id
           }
         })
-        console.log(drl);
         let invite = await datastore.sendInvite(did, drl);
-        console.log('invite', invite);
+        this.addMemberModal.hide();
+        notify.success('Invite sent!')
       }
-      // console.log(invite);
-      // record = await datastore.addMember(this.newMemberProfileCard.did, communityId);
-      // console.log(record);
-      // return record;
     }
   }
 
