@@ -138,7 +138,7 @@ export class CommunityChannel extends SpinnerMixin(LitElement) {
   }
 
   willUpdate(changedProperties) {
-    if (changedProperties.has('channel') && this.channel) {
+    if (changedProperties.has('channel')) {
       clearInterval(this.#messagePoller);
       this.loadMessages();
     }

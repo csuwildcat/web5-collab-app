@@ -111,6 +111,7 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
       this.loadChannels(),
       this.loadConvos()
     ])
+    this.context.channel = null;
     this.context = { ...this.context };
     const channel = channelId || this.getChannel(community.id);
     if (channel) this.setChannel(channel, true);
