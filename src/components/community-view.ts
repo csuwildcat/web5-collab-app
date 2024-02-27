@@ -150,8 +150,8 @@ export class CommunityView extends LitElement {
     const file = this.logoInput.files[0];
     const blob = file ? new Blob([file], { type: file.type }) : undefined;
     try {
-      const logoRecord = await datastore.setCommunityLogo(blob, this.communityRecord.id)
-      this.context.community.logo = logoRecord
+      const logoRecord = await datastore.setCommunityLogo(blob, this.context.community)
+      this.context.community.logo = logoRecord;
       this.logoUri = logoRecord.cache.uri
       notify.success('Community logo was saved')
     }

@@ -73,6 +73,11 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
 
   async loadCommunities(){
     const communities = await datastore.getCommunities();
+    await Promise.all(communities.map(async community => {
+      return community.logo = await datastore.getCommunityLogo(community.id, { from: community.author });
+    })).then(logos => {
+      this.requestUpdate()
+    });
     this.updateState({
       communities: new Map(communities.map(community => [community.id, community]))
     })
@@ -91,6 +96,7 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
   async loadInvites(_did, update) {
     const did = this.context.did || _did;
     const invites = await datastore.getInvites({ from: did, recipient: did });
+    this.context.invites = invites;
     if (invites && update !== false) this.updateState({ invites: invites });
   }
 
@@ -107,7 +113,6 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
       return;
     }
     this.context.community = community;
-    this.context.community.logo = await datastore.getCommunityLogo({ contextId: community.id });
     await Promise.all([
       this.loadChannels(),
       this.loadConvos()
@@ -117,6 +122,13 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
     const channel = channelId || this.getChannel(community.id);
     if (channel) this.setChannel(channel, true);
     else this.requestUpdate();
+  }
+
+  async setCommunityLogo(communityId, logo){
+    const community = this.context.communities.get(communityId);
+    community.logo = logo;
+    this.context = { ...this.context };
+    this.requestUpdate();
   }
 
   async installCommunity(id, from){

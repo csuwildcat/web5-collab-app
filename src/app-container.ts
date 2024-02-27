@@ -760,7 +760,7 @@ export class AppContainer extends AppContextMixin(SpinnerMixin(LitElement)) {
               return html`
                 <sl-tooltip content="${community.cache.json.name}" placement="right">
                   <a tabindex="-1" href="${href}" ?active="${location.pathname.match(communitySegment)}">
-                  <sl-avatar pressable label="${community.cache.json.name}"></sl-avatar>
+                  <sl-avatar pressable label="${community.cache.json.name}" image="${community?.logo?.cache?.uri || nothing}"></sl-avatar>
                   </a>
                 </sl-tooltip>
                 `

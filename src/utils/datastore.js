@@ -268,16 +268,15 @@ class Datastore {
     return record;
   }
 
-  async setCommunityLogo(blob, communityId, options = {}) {
-    let record = await this.getCommunityLogo({ contextId: communityId })
+  async setCommunityLogo(blob, community, options = {}) {
+    let record = await this.getCommunityLogo(community.id, Object.assign({ from: community.author }, options));
     if (record) {
       await record.update({ data: blob })
     } else {
-      ({ record } = await datastore.createProtocolRecord('sync', 'community/logo',
-      {
+      ({ record } = await datastore.createProtocolRecord('sync', 'community/logo', {
         data: blob,
-        parentId: communityId,
-        contextId: communityId
+        parentId: community.id,
+        contextId: community.id
       }))
     }
 
@@ -290,8 +289,8 @@ class Datastore {
     return record
   }
 
-  async getCommunityLogo(options = {}) {
-    const { records } = await this.queryProtocolRecords('sync', 'community/logo', options);
+  async getCommunityLogo(communityId, options = {}) {
+    const { records } = await this.queryProtocolRecords('sync', 'community/logo', Object.assign({ contextId: communityId }, options));
     if (options.cache !== false && records[0]) {
       const blob = await records[0].data?.blob()?.catch(e => {})?.then(obj => obj)
       records[0].cache = {
@@ -385,11 +384,8 @@ class Datastore {
 
   async sendInvite(recipient, link, options = {}) {
     if (!options.skipCheck) {
-      let invite = await this.getActiveInvite({ recipient });
-      if (invite) {
-        if (options.cache !== false) await cacheJson(invite)
-        return invite;
-      }
+      let invite = await this.getActiveInvite(link, { recipient });
+      if (invite) return invite;
     }
     const { record, status: recordStatus } = await this.createProtocolRecord('sync', 'invite', Object.assign({
       recipient,
@@ -397,6 +393,8 @@ class Datastore {
       dataFormat: 'application/json',
       data: { link }
     }, options));
+
+    console.log('invite ', record);
     if (options.cache !== false) await cacheJson(record)
     const { status: sendStatus } = await record.send(recipient);
     if (sendStatus.code === 202) {
@@ -407,13 +405,21 @@ class Datastore {
     }
   }
 
-  async getActiveInvite (options = {}) {
+  async getActiveInvite (link, options = {}) {
     const { records } = await this.queryProtocolRecords('sync', 'invite', options)
-    const record = records.find(record => !record.isDeleted)
-    if (record) {
-      if (options.cache !== false) await cacheJson(record)
-    }
-    return record;
+    let count = records.length;
+    return await Promise.race(
+      records.map(async record => new Promise(async (resolve, reject) => {
+        if (!record.isDeleted) {
+          await cacheJson(record);
+          if (record.cache.json.link === link) {
+            resolve(record);
+            return;
+          }
+        }
+        if (!--count) reject();
+      }))
+    ).catch(e => null)
   }
 
   async deactivateInvite(id, options = {}){

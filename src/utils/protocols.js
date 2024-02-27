@@ -10,6 +10,17 @@ function addSchemas(config) {
   }, {})
 }
 
+const anyoneCanQueryRead = [
+  {
+    who: 'anyone',
+    can: 'query'
+  },
+  {
+    who: 'anyone',
+    can: 'read'
+  }
+]
+
 const adminOrCreatorActions = [
   {
     who: 'author',
@@ -200,7 +211,7 @@ const appDefinition = {
       ]
     },
     community: {
-      $actions: memberActions,
+      $actions: adminOrCreatorActions.concat(anyoneCanQueryRead),
       admin: {
         $contextRole: true,
         $actions: adminOrCreatorActions.concat([
@@ -222,10 +233,10 @@ const appDefinition = {
         $actions: adminOrCreatorAndMemberQueryRead
       },
       logo: {
-        $actions: adminOrCreatorAndMemberQueryRead
+        $actions: adminOrCreatorAndMemberQueryRead.concat(anyoneCanQueryRead)
       },
-      hero: {
-        $actions: adminOrCreatorAndMemberQueryRead
+      banner: {
+        $actions: adminOrCreatorAndMemberQueryRead.concat(anyoneCanQueryRead)
       },
       channel: allMemberChannel,
       convo: {
@@ -291,14 +302,14 @@ const profileDefinition = {
     avatar: {
       dataFormats: ['image/gif', 'image/png', 'image/jpeg']
     },
-    hero: {
+    banner: {
       dataFormats: ['image/gif', 'image/png', 'image/jpeg']
     }
   },
   structure: {
     social: {},
     avatar: {},
-    hero: {},
+    banner: {},
     name: {},
     messaging: {},
     address: {},
