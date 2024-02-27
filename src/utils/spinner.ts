@@ -2,6 +2,8 @@ import { css, unsafeCSS } from 'lit';
 import { DOM } from './helpers';
 import '../components/global.js'
 
+const transitionDuration = 300;
+
 export const SpinnerStyles = css`
   .spinner-mixin {
     position: absolute;
@@ -12,7 +14,7 @@ export const SpinnerStyles = css`
     background: var(--sl-panel-background-color);
     inset: 0;
     opacity: 0;
-    transition: opacity 300ms ease;
+    transition: opacity ${transitionDuration}ms ease;
     z-index: 1000;
     pointer-events: none;
   }
@@ -64,6 +66,7 @@ export const SpinnerMixin = (BaseClass) => class extends BaseClass {
     host.append(spinner);
     if (options.minimum) spinner._spinnerMixinDelay = DOM.delay(options.minimum);
     options.renderImmediate ? spinner.setAttribute('spinner-show', '') : DOM.skipFrame(() => spinner.setAttribute('spinner-show', ''));
+    await DOM.delay(transitionDuration);
   }
 
   async stopSpinner(selector){

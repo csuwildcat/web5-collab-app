@@ -149,7 +149,8 @@ export class InviteItem extends SpinnerMixin(LitElement) {
 
   async installCommunity(){
     if (!this.community) return;
-    await this.context.instance.installCommunity(this.community.id, this._drl.did);
+    const success = await this.context.instance.installCommunity(this.community.id, this._drl.did);
+    if (success) {}
   }
 
 

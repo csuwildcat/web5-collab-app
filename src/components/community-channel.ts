@@ -27,7 +27,7 @@ import PageStyles from  '../styles/page.css';
 import { DOM, notify } from '../utils/helpers.js';
 import date from  '../utils/date.js';
 
-const transitionDuration = 200;
+const transitionDuration = 400;
 
 @customElement('community-channel')
 export class CommunityChannel extends SpinnerMixin(LitElement) {
@@ -149,7 +149,7 @@ export class CommunityChannel extends SpinnerMixin(LitElement) {
       this.messages = [];
       return;
     }
-    this.startSpinner('#messages_wrapper', { minimum: transitionDuration });
+    await this.startSpinner('#messages_wrapper', { minimum: transitionDuration });
     this.messages = await this.getLatestMessages()
     if (this.messageList) this.messageList.items = [...this.messages];
     this.stopSpinner('#messages_wrapper');
@@ -164,7 +164,6 @@ export class CommunityChannel extends SpinnerMixin(LitElement) {
     if (this.context.community.author !== this.context.did) { // TODO: account for whether they are an admin
       options.role = 'community/member';
     }
-    console.log(options);
     return datastore.getChannelMessages(this.channel, options);
   }
 

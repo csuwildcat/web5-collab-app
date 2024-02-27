@@ -293,7 +293,6 @@ class Datastore {
   async getChannelMessages (channelId, options = {}) {
     const response = await this.queryProtocolRecords('sync', 'community/channel/message', Object.assign({ parentId: channelId, sort: 'createdAscending' }, options))
     if (options.cache !== false) await cacheJson(response.records)
-    console.log(response);
     return response.records;
   }
 
@@ -331,7 +330,6 @@ class Datastore {
       dataFormat: 'application/json'
     }, options));
     if (options.cache !== false) await cacheJson(record)
-    console.log(status);
     return record;
   }
 
@@ -367,7 +365,6 @@ class Datastore {
     }, options));
     if (options.cache !== false) await cacheJson(record)
     const { status: sendStatus } = await record.send(recipient);
-    console.log(sendStatus);
     if (sendStatus.code === 202) {
       console.log(record);
       const result = await record.store();
@@ -383,6 +380,10 @@ class Datastore {
       if (options.cache !== false) await cacheJson(record)
     }
     return record;
+  }
+
+  async deactivateInvite(id, options = {}){
+
   }
 
   async getInvites (options = {}) {

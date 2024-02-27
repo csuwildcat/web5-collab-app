@@ -132,11 +132,12 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
         member.import(),
         channels.map(z => z.import()),
       ].flat())
-      this.setCommunity(id);
+      await this.setCommunity(id);
+      return true;
     }
     catch(e) {
       console.log(e);
-
+      return false;
     }
   }
 
