@@ -13,6 +13,18 @@ const initialState = {
   invites: [],
 };
 
+async function importLatestItems(did, current, latest){
+  const filtered = new Map();
+  await Promise.all(latest.reduce((promises, item) => {
+    if (!current.has(item)) {
+      promises.push(item.import().then(() => item.send(did)))
+    }
+    filtered.set(item.id, item);
+    return promises;
+  }, []));
+  return filtered;
+}
+
 export const AppContext = createContext(initialState);
 
 export const AppContextMixin = (BaseClass) => class extends BaseClass {
@@ -80,6 +92,7 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
   }
 
   async loadCommunity(){
+    console.log('community load')
     await Promise.all([
       this.loadLogo(),
       this.loadChannels(),
@@ -104,7 +117,8 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
       options.role = 'community/member';
     }
     const channels = await datastore.getChannels(community.id, options);
-    this.context.channels = new Map(channels.map(channel => [channel.id, channel]));
+    const filtered = await importLatestItems(this.context.did, this.context.channels, channels);
+    this.context.channels = filtered;
   }
 
   async loadConvos(){
@@ -114,7 +128,8 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
       options.role = 'community/member'
     }
     const convos = await datastore.getConvos(community.id, {})//options);
-    this.context.convos = new Map(convos.map(convo => [convo.id, convo]));
+    const filtered = await importLatestItems(this.context.did, this.context.convos, convos);
+    this.context.convos = filtered;
   }
 
   async loadInvites(_did) {

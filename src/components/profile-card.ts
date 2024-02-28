@@ -24,7 +24,7 @@ export class ProfileCard extends SpinnerMixin(LitElement) {
       }
 
         :host * {
-          transition: opacity 0.3s ease;
+          transition: opacity 0.2s ease;
         }
 
         :host([minimal]) {

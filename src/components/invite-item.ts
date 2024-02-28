@@ -159,9 +159,8 @@ export class InviteItem extends SpinnerMixin(LitElement) {
     this.installButton.loading = true;
     try {
       await this.context.instance.installCommunity(this.community.id, this.drl.did, this.community);
-      const result = await this.invite.update({ data: this.invite.cache.json });
-      const { status } = await this.invite.send(this.context.did);
-      console.log(status);
+      await this.invite.update({ data: this.invite.cache.json });
+      await this.invite.send(this.context.did);
     }
     catch(e){
       console.log(e);

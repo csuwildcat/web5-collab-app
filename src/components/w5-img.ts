@@ -28,7 +28,8 @@ export class W5Image extends LitElement {
         object-position: center;
         border: none;
         opacity: 0;
-        transition: opacity 0.5s ease;
+        transition: opacity 0.3s ease;
+        filter: drop-shadow(0px 1px 1px rgba(0, 0, 0, 1));
       }
 
       #image[loaded] {
@@ -44,6 +45,11 @@ export class W5Image extends LitElement {
         font-size: 3rem;
         z-index: -1;
         transform: translate(-50%, -50%);
+        transition: opacity 0.3s ease;
+      }
+
+      :host([loaded]) [part="fallback"] {
+        opacity: 0;
       }
     `
   ]

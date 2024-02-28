@@ -152,9 +152,9 @@ class Datastore {
     if (options.recipient) params.message.recipient = options.recipient;
     if (options.role) params.message.protocolRole = options.role;
     const response = await this.dwn.records.create(params);
-    console.log('status', response.status);
+    console.log('create status', response.status);
     if (options.store !== false) await response.record.send(this.did).then(e => {
-      console.log('sent', response.record);
+      console.log('sent success', response.record);
     }).catch(e => {
       console.log('send error', e)
     });

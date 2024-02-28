@@ -86,7 +86,7 @@ export class AppContainer extends AppContextMixin(SpinnerMixin(LitElement)) {
         display: flex;
         flex-direction: column;
         height: 100%;
-        --communities-list-width: 5em;
+        --communities-list-width: 4em;
       }
 
       main {
@@ -192,6 +192,7 @@ export class AppContainer extends AppContextMixin(SpinnerMixin(LitElement)) {
       vaadin-app-layout::part(drawer) {
         flex-direction: row;
         width: 20em;
+        max-width: 100%;
         background: rgba(44 44 49 / 100%);
         border-inline-end: 1px solid rgb(255 255 255 / 2%);
       }
@@ -271,7 +272,7 @@ export class AppContainer extends AppContextMixin(SpinnerMixin(LitElement)) {
         flex-direction: column;
         align-items: center;
         box-sizing: border-box;
-        width: var(--communities-list-width);
+        min-width: var(--communities-list-width);
         margin: 0;
         padding: 0.5em 0;
         background: rgba(0,0,0,0.15);
@@ -294,6 +295,10 @@ export class AppContainer extends AppContextMixin(SpinnerMixin(LitElement)) {
         border: 3px solid transparent;
         box-shadow: 0 1px 2px 1px rgba(0 0 0 / 20%);
         transition: border-color 0.3s ease;
+      }
+
+      #communities_list sl-avatar::part(image) {
+        padding: 0.1em;
       }
 
       #communities_list a:hover sl-avatar::part(base) {
@@ -589,7 +594,12 @@ export class AppContainer extends AppContextMixin(SpinnerMixin(LitElement)) {
         if (this.initialized) {
           const activePath = localStorage.lastActivePath = location.pathname || null;
         }
-        this.setCommunity(path.community, path.channel);
+        if (this.context?.community?.id !== path.community) {
+          this.setCommunity(path.community, path.channel);
+        }
+        else if (this.context?.channel !== path.channel) {
+          this.setChannel(path.channel, true);
+        }
         this.renderRoot.querySelector('#app_layout')?.__closeOverlayDrawer()
       },
       routes: [
