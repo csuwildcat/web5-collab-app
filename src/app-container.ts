@@ -72,7 +72,6 @@ export class AppContainer extends AppContextMixin(SpinnerMixin(LitElement)) {
     community: null,
     channel: null,
     communities: new Map(),
-    convos: new Map(),
     invites: [],
   };
 
@@ -793,7 +792,7 @@ export class AppContainer extends AppContextMixin(SpinnerMixin(LitElement)) {
             <span slot="summary">Channels</span><sl-icon-button slot="summary" name="plus-lg" label="Add Channel" @click="${this.channelAddHandler}"></sl-icon-button>
             ${
               community?.channels?.size ?
-              Array.from(community?.channels).map(([id, channel]) => {
+              Array.from(community?.channels || []).map(([id, channel]) => {
                   const href = `/communities/${community.id}/channels/${id}`;
                   return html`
                     <a href="${href}" ?active="${location.pathname.match(href)}">${channel.cache.json.name}</a>
@@ -808,8 +807,8 @@ export class AppContainer extends AppContextMixin(SpinnerMixin(LitElement)) {
           <sl-details id="convos" open>
             <span slot="summary">Convos</span><sl-icon-button slot="summary" name="plus-lg" label="Start Convo" @click=""></sl-icon-button>
             ${
-                this.context.convos.size ?
-                Array.from(this.context.convos).map(([id, convo]) => {
+                community?.convos?.size ?
+                Array.from(community?.convos || []).map(([id, convo]) => {
                   const href = `/communities/${community.id}/convo/${id}`;
                   return html`<a href="${href}" ?active="${location.pathname.match(href)}">${convo.cache.json.name}</a>`
                 }) :

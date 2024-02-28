@@ -8,7 +8,6 @@ const initialState = {
   community: null,
   channel: null,
   communities: new Map(),
-  convos: new Map(),
   invites: [],
 };
 
@@ -38,7 +37,6 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
       community: null,
       channel: null,
       communities: new Map(),
-      convos: new Map(),
       invites: [],
     }
   }
@@ -114,20 +112,21 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
     if (this.context.did !== community.author) {
       options.role = 'community/member';
     }
-    const sourceChannels = await datastore.getChannels(community.id, Object.assign({ from: community.author }, options));
-    community.channels = await importLatestRecords(this.context.did, community.channels, sourceChannels);
+    const sourceRecords = await datastore.getChannels(community.id, Object.assign({ from: community.author }, options));
+    community.channels = await importLatestRecords(this.context.did, community.channels, sourceRecords);
     this.updateState({ community });
   }
 
   async loadConvos(){
     const community = this.context.community;
-    const options = { from: community.author };
+    community.channels = community.channels || new Map();
+    const options = {};
     if (this.context.did !== community.author) {
-      options.role = 'community/member'
+      options.role = 'community/member';
     }
-    const sourceConvos = await datastore.getConvos(community.id, {})//options);
-    const convos = await importLatestRecords(this.context.did, this.context.convos, sourceConvos);
-    this.updateState({ convos });
+    const sourceRecords = await datastore.getConvos(community.id, {}) //, Object.assign({ from: community.author }, options));
+    community.convos = await importLatestRecords(this.context.did, community.convos, sourceRecords);
+    this.updateState({ community });
   }
 
   async loadInvites(_did) {
@@ -143,8 +142,7 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
     if (!community) {
       this.updateState({
         community: null,
-        channel: null,
-        convos: new Map()
+        channel: null
       })
       return;
     }
@@ -213,16 +211,17 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
 
   addChannel(channel) {
     const community = this.context.community;
-    const channels = community?.channels || new Map();
+    const channels = community.channels = community?.channels || new Map();
     channels.set(channel.id, channel);
     this.setChannel(channel.id, true);
     this.updateState({ community });
   }
 
   addConvo(convo) {
-    const updatedMap = new Map(this.context.convos);
-    updatedMap.set(convo.id, convo);
-    this.updateState({ convos: updatedMap });
+    const community = this.context.community;
+    const convos = community.convos = community?.convos || new Map();
+    convos.set(convo.id, convo);
+    this.updateState({ community });
   }
 
   updateState(partialState, render) {
