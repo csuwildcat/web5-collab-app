@@ -615,7 +615,7 @@ export class AppContainer extends AppContextMixin(SpinnerMixin(LitElement)) {
 
   async initialize(){
     this.startSpinner(null, { minimum: 1200, renderImmediate: true });
-    this.loadProfile(userDID);
+    await this.loadProfile(userDID);
     await this.loadCommunities();
     const firstCommunity = this.context.communities?.[0]?.id;
     const lastActivePath = localStorage.lastActivePath;
@@ -651,7 +651,7 @@ export class AppContainer extends AppContextMixin(SpinnerMixin(LitElement)) {
       notify.error('You must add a name and description to create a new community')
       return;
     }
-    const channel = await datastore.createChannel(this.context.community.id, { data: {
+    const channel = await datastore.createChannel(this.context.community, { data: {
       name,
       description
     }});
@@ -686,6 +686,7 @@ export class AppContainer extends AppContextMixin(SpinnerMixin(LitElement)) {
     const communityId = this.context?.community?.id;
     if (communityId) {
       let member = await datastore.getMember(did, communityId) || await datastore.addMember(did, communityId);
+      console.log(member);
       if (member) {
         const drl = natives.drl.create(this.context.community.author, {
           protocol: protocols.sync.uri,

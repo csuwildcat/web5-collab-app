@@ -33,7 +33,7 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
     }
   }
 
-  loadProfile(did){
+  async loadProfile(did){
     if (did === this.context.did) return;
     this.context.did = did;
     clearInterval(this.context.inviteChron);
@@ -74,7 +74,7 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
   async loadCommunities(){
     const communities = await datastore.getCommunities();
     await Promise.all(communities.map(async community => {
-      return community.logo = await datastore.getCommunityLogo(community.id, { from: community.author });
+      community.logo = await this.loadLogo(community);
     })).then(logos => {
       this.requestUpdate()
     });
@@ -83,13 +83,42 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
     })
   }
 
+  async loadCommunity(render = true){
+    await Promise.all([
+      this.loadLogo(),
+      this.loadChannels(),
+      this.loadConvos(),
+    ])
+    console.log(this.context.channels);
+    if (render) this.requestUpdate();
+  }
+
+  async loadLogo(community){
+    community = community || this.context.community;
+    const options = { from: community.author };
+    if (this.context.did !== community.author) {
+      options.role = 'community/member';
+    }
+    community.logo = await datastore.getCommunityLogo(community.id, options);
+  }
+
   async loadChannels(){
-    const channels = await datastore.getChannels(this.context.community.id);
+    const community = this.context.community;
+    const options = { from: community.author };
+    if (this.context.did !== community.author) {
+      options.role = 'community/member';
+    }
+    const channels = await datastore.getChannels(community.id, options);
     this.context.channels = new Map(channels.map(channel => [channel.id, channel]));
   }
 
   async loadConvos(){
-    const convos = await datastore.getConvos(this.context.community.id);
+    const community = this.context.community;
+    const options = { from: community.author };
+    if (this.context.did !== community.author) {
+      options.role = 'community/member'
+    }
+    const convos = await datastore.getConvos(community.id, {})//options);
     this.context.convos = new Map(convos.map(convo => [convo.id, convo]));
   }
 
@@ -102,6 +131,7 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
 
   async setCommunity(communityId, channelId){
     if (!this.context.communities.size) return;
+    clearInterval(this.context.communityChron);
     const community = this.context.communities.get(communityId);
     if (!community) {
       this.updateState({
@@ -113,10 +143,8 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
       return;
     }
     this.context.community = community;
-    await Promise.all([
-      this.loadChannels(),
-      this.loadConvos()
-    ])
+    await this.loadCommunity(false);
+    this.context.communityChron = setInterval(() => this.loadCommunity(), 1000 * 60)
     this.context.channel = null;
     this.context = { ...this.context };
     const channel = channelId || this.getChannel(community.id);

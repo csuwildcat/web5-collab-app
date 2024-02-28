@@ -140,6 +140,7 @@ class Datastore {
     const schema = protocols[protocol].schemas[path.split('/').pop()];
     if (schema) params.message.schema = schema;
     if (options.from) params.from = options.from;
+    if (options.store === false) params.store = options.store;
     if (options.parentId) params.message.parentId = options.parentId;
     if (options.contextId) params.message.contextId = options.contextId;
     if (options.data) params.data = options.data;
@@ -152,7 +153,7 @@ class Datastore {
     if (options.role) params.message.protocolRole = options.role;
     const response = await this.dwn.records.create(params);
     console.log('status', response.status);
-    await response.record.send(this.did).then(e => {
+    if (options.store !== false) await response.record.send(this.did).then(e => {
       console.log('sent', response.record);
     }).catch(e => {
       console.log('send error', e)
@@ -307,12 +308,21 @@ class Datastore {
     return records;
   }
 
-  async createChannel(communityId, options = {}) {
+  async createChannel(community, options = {}) {
+    if (community.author !== this.did) {
+      options.role || 'community/admin';
+    }
     const { record, status } = await this.createProtocolRecord('sync', 'community/channel', Object.assign({
-      parentId: communityId,
-      contextId: communityId,
+      store: false,
+      from: community.author,
+      parentId: community.id,
+      contextId: community.id,
       dataFormat: 'application/json'
     }, options));
+    const { status: sendStatus } = await record.send(community.author);
+    console.log(sendStatus);
+    if (sendStatus.code > 299) return status;
+    await record.store();
     if (options.cache !== false) await cacheJson(record)
     return record;
   }
@@ -350,7 +360,7 @@ class Datastore {
   }
 
   async getConvos (communityId, options = {}) {
-    const { records } = await this.queryProtocolRecords('sync', 'community/convo', Object.assign({ parentId: communityId }, options))
+    const { records } = await this.queryProtocolRecords('sync', 'community/convo', Object.assign({ parentId: communityId, contextId: communityId }, options))
     if (options.cache !== false) await cacheJson(records)
     return records;
   }
@@ -408,6 +418,7 @@ class Datastore {
   async getActiveInvite (link, options = {}) {
     const { records } = await this.queryProtocolRecords('sync', 'invite', options)
     let count = records.length;
+    if (count === 0) return null;
     return await Promise.race(
       records.map(async record => new Promise(async (resolve, reject) => {
         if (!record.isDeleted) {
