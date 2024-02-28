@@ -280,7 +280,7 @@ class Datastore {
         contextId: community.id
       }))
     }
-
+    await record.send(community.author);
     if (options.cache !== false && record) {
       record.cache = {
         blob: await record.data?.blob()?.catch(e => {})?.then(obj => obj),

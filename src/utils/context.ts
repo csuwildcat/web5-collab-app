@@ -45,7 +45,7 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
           bio: '',
           apps: {}
         }, from: did }),
-        this.loadInvites(did, false)
+        this.loadInvites(did)
       ])
       this.context.inviteChron = setInterval(() => this.loadInvites(), 1000 * 30)
       this.updateState({
@@ -73,24 +73,19 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
 
   async loadCommunities(){
     const communities = await datastore.getCommunities();
-    await Promise.all(communities.map(async community => {
-      community.logo = await this.loadLogo(community);
-    })).then(logos => {
-      this.requestUpdate()
-    });
+    await Promise.all(communities.map(async community => this.loadLogo(community)))
     this.updateState({
       communities: new Map(communities.map(community => [community.id, community]))
     })
   }
 
-  async loadCommunity(render = true){
+  async loadCommunity(){
     await Promise.all([
       this.loadLogo(),
       this.loadChannels(),
       this.loadConvos(),
     ])
-    console.log(this.context.channels);
-    if (render) this.requestUpdate();
+    this.requestUpdate();
   }
 
   async loadLogo(community){
@@ -122,11 +117,10 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
     this.context.convos = new Map(convos.map(convo => [convo.id, convo]));
   }
 
-  async loadInvites(_did, update) {
+  async loadInvites(_did) {
     const did = this.context.did || _did;
     const invites = await datastore.getInvites({ from: did, recipient: did });
-    this.context.invites = invites;
-    if (invites && update !== false) this.updateState({ invites: invites });
+    this.updateState({ invites: invites });
   }
 
   async setCommunity(communityId, channelId){
@@ -143,43 +137,36 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
       return;
     }
     this.context.community = community;
-    await this.loadCommunity(false);
+    await this.loadCommunity();
     this.context.communityChron = setInterval(() => this.loadCommunity(), 1000 * 60)
     this.context.channel = null;
     this.context = { ...this.context };
     const channel = channelId || this.getChannel(community.id);
     if (channel) this.setChannel(channel, true);
-    else this.requestUpdate();
   }
 
-  async setCommunityLogo(communityId, logo){
-    const community = this.context.communities.get(communityId);
+  async setCommunityLogo(community, logo){
+    community = community === this.context.community ? this.context.community : this.context.communities.get(community);
     community.logo = logo;
     this.context = { ...this.context };
     this.requestUpdate();
   }
 
   async installCommunity(id, from){
-    try {
-      const [community, admins, member, channels] = await Promise.all([
-        datastore.getCommunity(id, { from, role: 'community/member', cache: false }),
-        datastore.getAdmins(id, { from, cache: false }),
-        datastore.getMember(this.context.did, id, { from, cache: false }),
-        datastore.getChannels(id, { from, role: 'community/member', cache: false })
-      ]);
-      await Promise.all([
-        community.import(),
-        admins.map(z => z.import()),
-        member.import(),
-        channels.map(z => z.import()),
-      ].flat())
-      await this.setCommunity(id);
-      return true;
-    }
-    catch(e) {
-      console.log(e);
-      return false;
-    }
+    const [community, admins, member, channels] = await Promise.all([
+      datastore.getCommunity(id, { from, role: 'community/member', cache: false }),
+      datastore.getAdmins(id, { from, cache: false }),
+      datastore.getMember(this.context.did, id, { from, cache: false }),
+      datastore.getChannels(id, { from, role: 'community/member', cache: false })
+    ]);
+    await Promise.all([
+      community.import(),
+      admins.map(z => z.import()),
+      member.import(),
+      channels.map(z => z.import()),
+    ].flat())
+    await this.setCommunity(id);
+    return community;
   }
 
   getChannel(community){
