@@ -8,18 +8,17 @@ const initialState = {
   community: null,
   channel: null,
   communities: new Map(),
-  channels: new Map(),
   convos: new Map(),
   invites: [],
 };
 
-async function importLatestItems(did, current, latest){
+async function importLatestRecords(did, current, latest){
   const filtered = new Map();
-  await Promise.all(latest.reduce((promises, item) => {
-    if (!current.has(item)) {
-      promises.push(item.import().then(() => item.send(did)))
+  await Promise.all(latest.reduce((promises, record) => {
+    if (!current.has(record.id)) {
+      promises.push(record.import().then(() => record.send(did)))
     }
-    filtered.set(item.id, item);
+    filtered.set(record.id, record);
     return promises;
   }, []));
   return filtered;
@@ -39,7 +38,6 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
       community: null,
       channel: null,
       communities: new Map(),
-      channels: new Map(),
       convos: new Map(),
       invites: [],
     }
@@ -92,7 +90,6 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
   }
 
   async loadCommunity(){
-    console.log('community load')
     await Promise.all([
       this.loadLogo(),
       this.loadChannels(),
@@ -112,13 +109,14 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
 
   async loadChannels(){
     const community = this.context.community;
-    const options = { from: community.author };
+    community.channels = community.channels || new Map();
+    const options = {};
     if (this.context.did !== community.author) {
       options.role = 'community/member';
     }
-    const channels = await datastore.getChannels(community.id, options);
-    const filtered = await importLatestItems(this.context.did, this.context.channels, channels);
-    this.context.channels = filtered;
+    const sourceChannels = await datastore.getChannels(community.id, Object.assign({ from: community.author }, options));
+    community.channels = await importLatestRecords(this.context.did, community.channels, sourceChannels);
+    this.updateState({ community });
   }
 
   async loadConvos(){
@@ -127,9 +125,9 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
     if (this.context.did !== community.author) {
       options.role = 'community/member'
     }
-    const convos = await datastore.getConvos(community.id, {})//options);
-    const filtered = await importLatestItems(this.context.did, this.context.convos, convos);
-    this.context.convos = filtered;
+    const sourceConvos = await datastore.getConvos(community.id, {})//options);
+    const convos = await importLatestRecords(this.context.did, this.context.convos, sourceConvos);
+    this.updateState({ convos });
   }
 
   async loadInvites(_did) {
@@ -146,7 +144,6 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
       this.updateState({
         community: null,
         channel: null,
-        channels: new Map(),
         convos: new Map()
       })
       return;
@@ -215,10 +212,11 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
   }
 
   addChannel(channel) {
-    const updatedMap = new Map(this.context.channels);
-    updatedMap.set(channel.id, channel);
+    const community = this.context.community;
+    const channels = community?.channels || new Map();
+    channels.set(channel.id, channel);
     this.setChannel(channel.id, true);
-    this.updateState({ channels: updatedMap });
+    this.updateState({ community });
   }
 
   addConvo(convo) {

@@ -72,7 +72,6 @@ export class AppContainer extends AppContextMixin(SpinnerMixin(LitElement)) {
     community: null,
     channel: null,
     communities: new Map(),
-    channels: new Map(),
     convos: new Map(),
     invites: [],
   };
@@ -734,8 +733,9 @@ export class AppContainer extends AppContextMixin(SpinnerMixin(LitElement)) {
   }
 
   render() {
+    const community = this.context.community;
     const channels = this.getChannels();
-    const communityId = this.context?.community?.id
+    const communityId = community?.id
     const inviteCount = this.context.invites.reduce((count, invite) => count + (invite.initialWrite ? 0 : 1), 0);
     return html`
 
@@ -792,9 +792,9 @@ export class AppContainer extends AppContextMixin(SpinnerMixin(LitElement)) {
           <sl-details id="channels" open>
             <span slot="summary">Channels</span><sl-icon-button slot="summary" name="plus-lg" label="Add Channel" @click="${this.channelAddHandler}"></sl-icon-button>
             ${
-              this.context.channels.size ?
-              Array.from(this.context.channels).map(([id, channel]) => {
-                  const href = `/communities/${this.context.community.id}/channels/${id}`;
+              community?.channels?.size ?
+              Array.from(community?.channels).map(([id, channel]) => {
+                  const href = `/communities/${community.id}/channels/${id}`;
                   return html`
                     <a href="${href}" ?active="${location.pathname.match(href)}">${channel.cache.json.name}</a>
                 `}) :
@@ -810,7 +810,7 @@ export class AppContainer extends AppContextMixin(SpinnerMixin(LitElement)) {
             ${
                 this.context.convos.size ?
                 Array.from(this.context.convos).map(([id, convo]) => {
-                  const href = `/communities/${this.context.community.id}/convo/${id}`;
+                  const href = `/communities/${community.id}/convo/${id}`;
                   return html`<a href="${href}" ?active="${location.pathname.match(href)}">${convo.cache.json.name}</a>`
                 }) :
                 html`<sl-button class="empty-list-button" variant="default" size="small">

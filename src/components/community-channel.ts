@@ -197,7 +197,7 @@ export class CommunityChannel extends SpinnerMixin(LitElement) {
   };
 
   render() {
-    const channelData = this.context.channels.get(this.channel)?.cache?.json;
+    const channelData = this.context?.community?.channels?.get?.(this.channel)?.cache?.json;
     return html`
       <header id="header">
         ${channelData?.name ? html`<h3>${channelData.name}</h3>` : '' }

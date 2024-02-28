@@ -124,7 +124,6 @@ class Datastore {
       params.message.protocolRole = options.role
     }
     const response = await this.dwn.records.read(params);
-    console.log('read status: ', response.status);
     return response;
   }
 
@@ -263,7 +262,6 @@ class Datastore {
   async getCommunity (id, options = {}) {
     await this.ready;
     const { record, status } = await this.readProtocolRecord(id, options)
-    console.log(status);
     if (status.code > 299) return status;
     if (options.cache !== false) await cacheJson(record)
     return record;
