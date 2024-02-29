@@ -630,6 +630,7 @@ export class AppContainer extends AppContextMixin(SpinnerMixin(LitElement)) {
     this.initialized = true;
     this.router.navigateTo(lastActivePath ? lastActivePath : firstCommunity ? '/communities/' + firstCommunity : '/settings');
     this.requestUpdate();
+    await DOM.skipFrame();
     this.stopSpinner()
   }
 
