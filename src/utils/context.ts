@@ -102,7 +102,11 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
     if (this.context.did !== community.author) {
       options.role = 'community/member';
     }
-    community.logo = await datastore.getCommunityLogo(community.id, options);
+    const logo = await datastore.getCommunityLogo(community.id, options);
+    if (community === this.context.community) {
+      community.logo = logo;
+      this.updateState({ community });
+    }
   }
 
   async loadChannels(){
@@ -113,8 +117,11 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
       options.role = 'community/member';
     }
     const sourceRecords = await datastore.getChannels(community.id, Object.assign({ from: community.author }, options));
-    community.channels = await importLatestRecords(this.context.did, community.channels, sourceRecords);
-    this.updateState({ community });
+    const channels = await importLatestRecords(this.context.did, community.channels, sourceRecords);
+    if (community === this.context.community) {
+      community.channels = channels;
+      this.updateState({ community });
+    }
   }
 
   async loadConvos(){
@@ -125,8 +132,11 @@ export const AppContextMixin = (BaseClass) => class extends BaseClass {
       options.role = 'community/member';
     }
     const sourceRecords = await datastore.getConvos(community.id, {}) //, Object.assign({ from: community.author }, options));
-    community.convos = await importLatestRecords(this.context.did, community.convos, sourceRecords);
-    this.updateState({ community });
+    const convos = await importLatestRecords(this.context.did, community.convos, sourceRecords);
+    if (community === this.context.community) {
+      community.convos = convos;
+      this.updateState({ community });
+    }
   }
 
   async loadInvites(_did) {

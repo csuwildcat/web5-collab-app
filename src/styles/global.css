@@ -20,7 +20,10 @@ html, body {
   padding: 0;
   margin: 0;
   height: 100%;
-  background: none !important;
+}
+
+body {
+  background: var(--body-bk) !important;
 }
 
 .sl-toast-stack {

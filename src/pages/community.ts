@@ -50,9 +50,7 @@ export class PageCommunities extends LitElement {
   render() {
     return html`
       <community-channel id="channel" community="${this.community || nothing}" channel="${this.channel || nothing}"></community-channel>
-      ${ this.context?.community?.channels?.size ? nothing : html`<div default-content="cover">
-
-      </div>`}
+      <div default-content="cover" ?hidden="${ this.context?.community?.channels?.size || nothing }"></div>
     `;
   }
 }
