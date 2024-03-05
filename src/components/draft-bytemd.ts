@@ -136,7 +136,7 @@ export class PostEditor extends LitElement {
     // this.postId = id;
     // this.post = await datastore.getPost(id);
     // this.data = await this.post.data.json();
-    this.editor.setValue('test')//this.data.markdown);
+    //this.editor.setValue('test')//this.data.markdown);
   }
 
   savePost = DOM.throttle(() => {
@@ -170,15 +170,6 @@ export class PostEditor extends LitElement {
     `;
   }
 }
-
-
-
-
-
-
-
-
-
 
 
 import { LitElement, html, css, unsafeCSS } from 'lit';
@@ -279,7 +270,7 @@ export class PostEditor extends LitElement {
 
     this.editor = createWysimark(editorElement, {
       placeholder: 'Add content to your new post - markdown supported'
-      initialMarkdown: "# Hello World",
+      initialMarkdown: "",
     })
 
     this.#cloneStyles(document.head.querySelectorAll('[data-emotion]'));

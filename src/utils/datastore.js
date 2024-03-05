@@ -213,7 +213,7 @@ class Datastore {
   async readAvatar(options = {}){
     await this.ready;
     const did = options.from = options.from || this.did;
-    if (did !== this.did) {
+    if (!options.skipCache) {
       const cached = Datastore.getCache(did, 'avatar');
       if (cached) return cached;
     }
@@ -223,7 +223,7 @@ class Datastore {
       blob: blob,
       uri: URL.createObjectURL(blob)
     }
-    if (did !== this.did) Datastore.setCache(did, 'avatar', record);
+    Datastore.setCache(did, 'avatar', record);
     return record;
   }
 

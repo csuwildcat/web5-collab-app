@@ -3,8 +3,13 @@ import { consume } from '@lit/context';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { customElement, query, property } from 'lit/decorators.js';
 
+import * as markdown from  '../utils/markdown.js';
+
 import { AppContext } from '../utils/context.js';
 import { SpinnerMixin, SpinnerStyles } from '../utils/spinner';
+
+import './message-item.js'
+import './message-input.js'
 
 import '@vaadin/message-input/theme/lumo/vaadin-message-input.js';
 import '@vaadin/message-list/theme/lumo/vaadin-message.js';
@@ -38,6 +43,7 @@ export class CommunityChannel extends SpinnerMixin(LitElement) {
   static styles = [
     unsafeCSS(PageStyles),
     SpinnerStyles,
+    markdown.styles,
     css`
 
       :host {
@@ -82,29 +88,16 @@ export class CommunityChannel extends SpinnerMixin(LitElement) {
         overflow-anchor: none;
       }
 
+      message-item {
+        margin: 0.6em 1em;
+      }
+
       vaadin-message::part(content) {
         font-size: 90%;
       }
 
-      vaadin-message::part(header) {
-        max-width: 350px;
-        font-size: 90%;
-        opacity: 0.5;
-      }
-
-      vaadin-message::part(name) {
-        flex: 1;
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-      }
-
-      vaadin-message::part(time) {
-        font-size: 85%;
-      }
-
       #message_input {
-        /* max-width: 900px; */
+        margin: 1em;
       }
 
       .spinner-mixin {
@@ -129,6 +122,9 @@ export class CommunityChannel extends SpinnerMixin(LitElement) {
 
   @query('#message_list', true)
   messageList;
+
+  @query('#message_input', true)
+  messageInput;
 
   @query('#spinner', true)
   spinner;
@@ -181,6 +177,7 @@ export class CommunityChannel extends SpinnerMixin(LitElement) {
     }
     const record = await datastore.createChannelMessage(this.community, this.channel, options);
     await record.send(host);
+    this.messageInput.content = '';
     this.messageList.items = this.messages = this.messages.concat([record]);
     this.messageList.requestContentUpdate();
   }
@@ -188,10 +185,11 @@ export class CommunityChannel extends SpinnerMixin(LitElement) {
   renderMessage(root, list, { item: record, index }) {
     const data = record.cache.json;
     render(
-      html`<vaadin-message
-            time="${date.print(record.dateCreated, true)}"
-            user-name = "${record.author}">${data.body}
-          </vaadin-message>`,
+      html`
+        <message-item did="${record.author}" time="${date.print(record.dateCreated, true)}">
+          ${markdown.render(data.body)}
+        </message-item>
+      `,
       root
     );
   };
@@ -204,7 +202,8 @@ export class CommunityChannel extends SpinnerMixin(LitElement) {
       </header>
       <div id="messages_wrapper">
         <vaadin-virtual-list id="message_list" .items="${this.messages}"><div anchor></div></vaadin-virtual-list>
-        <vaadin-message-input id="message_input" @submit="${this.submitMessage}"></vaadin-message-input>
+        <!-- <vaadin-message-input id="message_input" @submit="${this.submitMessage}"></vaadin-message-input> -->
+        <message-input id="message_input" @message-input-submit="${this.submitMessage}"></message-input>
       </div>
     `;
   }
