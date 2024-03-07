@@ -127,11 +127,8 @@ export class MarkdownInput extends LitElement {
 
   async firstUpdated() {
     this.editor = ink(this.renderRoot, {
-      root: this.shadowRoot,
-      parent: this.renderRoot
+      root: this.shadowRoot
     });
-
-    this.editor.reconfigure({ parent: this.renderRoot, root: this.shadowRoot })
 
     // this.editor = new Editor({
     //   target: this.renderRoot,

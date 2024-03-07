@@ -20,7 +20,7 @@ export class MessageItem extends LitElement {
         --avatar-size: 2.25em;
       }
 
-      :host > #content {
+      #content {
         display: flex;
         flex-direction: column; /* Stacks the header above the body */
         justify-content: flex-start; /* Aligns content at the start */
@@ -28,7 +28,7 @@ export class MessageItem extends LitElement {
         margin-left: 0.5em;
       }
 
-      :host > w5-img {
+      #avatar {
         --size: var(--avatar-size);
         border-radius: 10em;
         /*
@@ -45,8 +45,8 @@ export class MessageItem extends LitElement {
       }
 
       #author {
-        min-width: 175px;
-        max-width: 300px;
+        min-width: 125px;
+        max-width: 200px;
         padding: 0 0.5em 0 0;
         overflow: hidden;
         white-space: nowrap;
@@ -56,6 +56,10 @@ export class MessageItem extends LitElement {
       #content > header time {
         font-size: 85%;
         text-wrap: nowrap;
+      }
+
+      #message {
+        margin: 0.4em 0.1em;
       }
     `
   ]
