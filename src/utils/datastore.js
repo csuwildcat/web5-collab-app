@@ -50,7 +50,8 @@ class Datastore {
                 definition: _protocol.definition
               }
             })
-            await protocol.send(this.did);
+            const response = await protocol.send(this.did);
+            console.log(response);
           })
         )
         console.log('installed');
@@ -328,6 +329,7 @@ class Datastore {
   async getChannels (communityId, options = {}) {
     const { records } = await this.queryProtocolRecords('sync', 'community/channel', Object.assign({ parentId: communityId, contextId: communityId }, options))
     if (options.cache !== false) await cacheJson(records)
+    console.log(records);
     return records;
   }
 
