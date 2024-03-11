@@ -38,10 +38,6 @@ const adminOrCreatorActions = [
   },
   {
     role: 'community/admin',
-    can: 'query'
-  },
-  {
-    role: 'community/admin',
     can: 'read'
   }
 ];
